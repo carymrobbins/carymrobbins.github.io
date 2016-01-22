@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 import Control.Monad
 import Data.List (isInfixOf)
 import Data.Monoid
@@ -7,23 +7,24 @@ import System.Directory
 import System.FilePath.Posix
 
 import Hakyll
+import Hakyll.Web.Sass
 
 main :: IO ()
 main = hakyll $ do
   match "images/*" $ do
-    route   idRoute
+    route idRoute
     compile copyFileCompiler
 
-  match "css/*" $ do
-    route   idRoute
+  match "css/*.css" $ do
+    route idRoute
     compile compressCssCompiler
 
-  match "bower_components/jquery/dist/**" $ do
-    route $ gsubRoute "bower_components/jquery/dist/" (const "js/")
-    compile copyFileCompiler
+  match "css/default.scss" $ do
+    route $ setExtension "css"
+    compile $ fmap compressCss <$> (getResourceBody >>= renderSass)
 
-  match "bower_components/bootstrap/dist/**" $ do
-    route $ gsubRoute "bower_components/bootstrap/dist/" (const "")
+  match "components/**" $ do
+    route idRoute
     compile copyFileCompiler
 
   match "posts/dev/*" $ do
@@ -33,27 +34,12 @@ main = hakyll $ do
       >>= loadAndApplyTemplate "templates/default.html" postCtx
       >>= processUrls
 
-  create ["archive/index.html"] $ do
-    route idRoute
-    compile $ do
-      devPosts <- recentFirst =<< loadAll "posts/dev/*"
-      let archiveCtx =
-            listField "posts" postCtx (return devPosts) <>
-            constField "title" "Archives" <>
-            defaultContext
-
-      makeItem ""
-        >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
-        >>= loadAndApplyTemplate "templates/default.html" archiveCtx
-        >>= processUrls
-
   match "index.html" $ do
     route idRoute
     compile $ do
       devPosts <- recentFirst =<< loadAll "posts/dev/*"
       let indexCtx =
             listField "posts" postCtx (return devPosts) <>
-            constField "title" "Home" <>
             defaultContext
 
       getResourceBody

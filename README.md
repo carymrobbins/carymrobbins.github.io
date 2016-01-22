@@ -2,4 +2,6 @@
 
 ## Setup
 
-cabal install -j -fhighlighting --dependencies-only
+```
+$ cabal install -j -fhighlighting --dependencies-only
+```

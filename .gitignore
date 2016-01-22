@@ -16,7 +16,7 @@ _cache
 _store
 _site
 
-bower_components/
+components/
 .idea/
 lib
 site
