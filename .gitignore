@@ -1,0 +1,23 @@
+# Ignore swap files and cabal output.
+*.hi
+*.o
+*.swo
+*.swp
+*~
+.DS_Store
+TAGS
+dist
+tags
+cabal.sandbox.config
+.cabal-sandbox/
+
+# Ignore compiled html.
+_cache
+_store
+_site
+
+bower_components/
+.idea/
+lib
+site
+*.iml

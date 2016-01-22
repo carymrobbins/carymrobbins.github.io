@@ -1,0 +1,19 @@
+{
+  "name": "caryrobbins.com",
+  "version": "0.0.0",
+  "authors": [
+    "Cary M. Robbins <carymrobbins@gmail.com>"
+  ],
+  "license": "None",
+  "homepage": "caryrobbins.com",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.6"
+  }
+}

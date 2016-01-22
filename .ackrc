@@ -1,0 +1,6 @@
+--ignore-dir=_cache
+--ignore-dir=_site
+--ignore-dir=_store
+--ignore-dir=.idea
+--ignore-dir=bower_components
+--ignore-dir=lib
