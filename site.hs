@@ -19,7 +19,7 @@ main = hakyll $ do
     route idRoute
     compile compressCssCompiler
 
-  match "css/default.scss" $ do
+  match "css/*.scss" $ do
     route $ setExtension "css"
     compile $ fmap compressCss <$> (getResourceBody >>= renderSass)
 
