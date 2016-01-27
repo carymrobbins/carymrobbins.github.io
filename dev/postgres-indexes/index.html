@@ -20,47 +20,172 @@
 
   </head>
   <body>
-    <nav id="header" class="navbar navbar-default navbar-fixed-top">
-      <div class="wrapper">
-        <div id="logo">
-          <a href="../../">cary robbins</a>
-        </div>
-        <div id="social">
-          <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-            <span class="fa fa-github"></span>
-          </a>
-          <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-            <span class="fa fa-linkedin"></span>
-          </a>
-          <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-            <span class="fa fa-twitter"></span>
-          </a>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
         </div>
       </div>
     </nav>
 
-    <div class="wrapper content">
-      <div class="info">
-    Posted on January 21, 2016
-    
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>PostgreSQL Indexes</h1>
+    </div>
+    <div class="col-md-12">
+      <small>January 26, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>Many times, while we are creating our schemas, we preemptively add indexes to ensure our queries will be blazingly fast before we even start writing them. But come to find out, not only does this rarely work, but you end up with false expectations regarding performance.</p>
+<p>Let’s start with the following schema -</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">create</span> <span class="kw">table</span> account(
+  id <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span>
+);
+
+<span class="kw">create</span> <span class="kw">table</span> customer(
+  id <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span>,
+  account_id <span class="dt">serial</span> <span class="kw">references</span> account(id)
+);
+
+<span class="kw">create</span> <span class="kw">table</span> purchase(
+  id <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span>,
+  account_id <span class="dt">serial</span> <span class="kw">references</span> account(id),
+  customer_id <span class="dt">serial</span> <span class="kw">references</span> customer(id),
+  amount <span class="kw">numeric</span>(<span class="dv">10</span>, <span class="dv">2</span>),
+  <span class="dt">time</span> <span class="dt">timestamptz</span>,
+  favorite <span class="dt">bool</span> <span class="kw">not</span> <span class="kw">null</span>
+);</code></pre></div>
+<p>For this exercise, I’ve created 3 accounts, 10,000 customers, and 10,000,000 purchases.</p>
+<p>It’s <em>obvious</em> that we’d want to add indexes to our foreign key fields, so let’s go ahead and do that.</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">create</span> <span class="kw">index</span> ix_customer_account <span class="kw">on</span> customer(account_id);
+<span class="kw">create</span> <span class="kw">index</span> ix_purchase_account <span class="kw">on</span> purchase(account_id);
+<span class="kw">create</span> <span class="kw">index</span> ix_purchase_customer <span class="kw">on</span> purchase(customer_id);</code></pre></div>
+<p><em>This is actually <strong>not</strong> a good idea. While we very well may end up needing indexes like these, we should always look at the query plan and confirm that the index is justified before adding it.</em></p>
+<h2 id="optimizing-count">Optimizing <code>count(*)</code></h2>
+<p>Now let’s say that we need to provide the count of favorite purchases for an account. Let’s check the query plan to see how this does.</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">explain</span> <span class="kw">analyze</span>
+  <span class="kw">select</span> <span class="kw">count</span>(*)
+  <span class="kw">from</span> purchase
+  <span class="kw">where</span> account_id = <span class="dv">1</span> and favorite;</code></pre></div>
+<pre class="text"><code>Aggregate  (cost=188196.41..188196.42 rows=1 width=0) (actual time=1109.149..1109.150 rows=1 loops=1)
+  -&gt;  Bitmap Heap Scan on purchase  (cost=62066.98..187350.98 rows=338173 width=0) (actual time=235.196..1093.048 rows=332813 loops=1)
+        Recheck Cond: (account_id = 1)
+        Rows Removed by Index Recheck: 4219293
+        Filter: favorite
+        Rows Removed by Filter: 3001198
+        Heap Blocks: exact=30596 lossy=52738
+        -&gt;  Bitmap Index Scan on ix_purchase_account  (cost=0.00..61982.43 rows=3356000 width=0) (actual time=229.033..229.033 rows=3334011 loops=1)
+              Index Cond: (account_id = 1)
+Planning time: 0.051 ms
+Execution time: 1109.173 ms</code></pre>
+<p><em>Note: If you have trouble reading these, you can paste them into <a href="http://explain.depesz.com/">explain.depesz.com</a> which will give you a nicer format to work with.</em></p>
+<p>These results aren’t exactly great. The <strong>Bitmap Heap Scan</strong> here shows us that we’re having to scan through more rows than we’d ought to. In fact, if we create our indexes appropriately, we can actually get the results we want directly from the index!</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_account_favorite <span class="kw">on</span> purchase(account_id) <span class="kw">where</span> favorite;</code></pre></div>
+<p>Here we are using <code>where</code> to specify a <a href="http://www.postgresql.org/docs/current/static/indexes-partial.html">partial index</a>. This can be useful so that your indexes remain smaller, reducing the size impact to the database. This also gives Postgres additional information so it knows when it can use the index.</p>
+<p>Ok, now let’s plan our query again -</p>
+<pre class="text"><code>Aggregate  (cost=94743.86..94743.87 rows=1 width=0) (actual time=886.781..886.781 rows=1 loops=1)
+  -&gt;  Bitmap Heap Scan on purchase  (cost=6337.27..93898.43 rows=338173 width=0) (actual time=44.876..868.883 rows=332813 loops=1)
+        Recheck Cond: ((account_id = 1) AND favorite)
+        Rows Removed by Index Recheck: 6114519
+        Heap Blocks: exact=29172 lossy=52743
+        -&gt;  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..6252.72 rows=338173 width=0) (actual time=39.835..39.835 rows=332813 loops=1)
+              Index Cond: (account_id = 1)
+Planning time: 0.060 ms
+Execution time: 886.807 ms</code></pre>
+<p>Wait, what? Performance is a little better, but it’s still doing a bitmap scan. What we really want is an <strong>Index Only Scan</strong>. Come to find out, <a href="http://www.postgresql.org/message-id/79C7D74D-59B0-4D97-A5E5-55553EF299AA@justatheory.com">Postgres can’t always figure this out when using partial indexes</a>, so we can give it more information by including the <code>favorite</code> column -</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">drop</span> <span class="kw">index</span> ix_purchase_account_favorite;
+<span class="kw">create</span> <span class="kw">index</span> ix_purchase_account_favorite <span class="kw">on</span> purchase(account_id, favorite) <span class="kw">where</span> favorite;</code></pre></div>
+<p>Let’s try our query again -</p>
+<pre class="text"><code>Aggregate  (cost=1838.89..1838.90 rows=1 width=0) (actual time=47.028..47.028 rows=1 loops=1)
+  -&gt;  Index Only Scan using ix_purchase_account_favorite on purchase  (cost=0.42..1014.35 rows=329817 width=0) (actual time=0.023..31.922 rows=332813 loops=1)
+        Index Cond: ((account_id = 1) AND (favorite = true))
+        Heap Fetches: 0
+Planning time: 0.063 ms
+Execution time: 47.048 ms</code></pre>
+<p>Good! Now that we are getting an index only scan, we can pretty much stop at this point. This is generally the best you can do when optimizing a <code>count(*)</code> query. Postgres is able to look directly at the index instead of scanning any rows in the table.</p>
+<h2 id="optimizing-order-by-with-limit">Optimizing <code>order by</code> with <code>limit</code></h2>
+<p>Now we are tasked with getting the most recent, favorite purchase.</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">explain</span> <span class="kw">analyze</span>
+  <span class="kw">select</span> id, <span class="dt">time</span>
+  <span class="kw">from</span> purchase
+  <span class="kw">where</span> account_id = <span class="dv">1</span> and favorite
+  <span class="kw">order</span> <span class="kw">by</span> <span class="dt">time</span> <span class="kw">desc</span>
+  <span class="kw">limit</span> <span class="dv">1</span></code></pre></div>
+<pre class="text"><code>Limit  (cost=65199.64..65199.64 rows=1 width=12) (actual time=845.771..845.771 rows=1 loops=1)
+  -&gt;  Sort  (cost=65199.64..66024.18 rows=329817 width=12) (actual time=845.770..845.770 rows=1 loops=1)
+        Sort Key: &quot;time&quot;
+        Sort Method: top-N heapsort  Memory: 25kB
+        -&gt;  Bitmap Heap Scan on purchase  (cost=769.84..63550.56 rows=329817 width=12) (actual time=51.306..815.209 rows=332813 loops=1)
+              Recheck Cond: (account_id = 1)
+              Rows Removed by Index Recheck: 4216921
+              Filter: favorite
+              Rows Removed by Filter: 1897598
+              Heap Blocks: exact=29172 lossy=52743
+              -&gt;  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..687.38 rows=32696 width=0) (actual time=43.954..43.954 rows=332813 loops=1)
+                    Index Cond: ((account_id = 1) AND (favorite = true))
+Planning time: 0.120 ms
+Execution time: 845.798 ms</code></pre>
+<p>Interesting, it’s using our new index, but it has to resort to a bitmap scan so it can later sort the results. Alternatively, we can provide a similar index with <code>time desc</code> so we can optimize for the sort -</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_latest_favorite <span class="kw">on</span> purchase(account_id, <span class="dt">time</span> <span class="kw">desc</span>)
+  <span class="kw">where</span> favorite;</code></pre></div>
+<p>Now Postgres is able to use an <strong>Index Scan</strong> to fetch the result -</p>
+<pre class="text"><code>Limit  (cost=0.42..1.41 rows=1 width=12) (actual time=0.018..0.019 rows=1 loops=1)
+  -&gt;  Index Scan using ix_purchase_latest_favorite on purchase  (cost=0.42..324659.07 rows=328677 width=12) (actual time=0.018..0.018 rows=1 loops=1)
+        Index Cond: (account_id = 1)
+Planning time: 0.080 ms
+Execution time: 0.029 ms</code></pre>
+<p>Note that <code>limit 1</code> isn’t necessarily required here; however, if you are fetching a lot of rows, it’s likely that Postgres will resort to a bitmap heap scan instead of an index scan.</p>
+<h2 id="gotchas">Gotchas</h2>
+<p>When adding indexes you may not see the plans you expect immediately. Be sure to always execute the query a few times to ensure statistics are updated. You may even need to run <code>vacuum analyze</code> on the table to rebuild statistics (although, don’t do <code>vacuum full analyze</code> unless you know that’s what you need as this usually destroys statistics used for things like index only scans).</p>
+<p>So far, our original indexes aren’t being used at all. Let’s see how big they are -</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">select</span> ix, pg_size_pretty(pg_relation_size(ix))
+<span class="kw">from</span> (
+  <span class="kw">values</span> (<span class="st">'ix_customer_account'</span>),(<span class="st">'ix_purchase_account'</span>),(<span class="st">'ix_purchase_customer'</span>)
+) <span class="kw">as</span> _(ix);</code></pre></div>
+<pre class="text"><code>          ix          | pg_size_pretty 
+----------------------+----------------
+ ix_customer_account  | 2208 kB
+ ix_purchase_account  | 214 MB
+ ix_purchase_customer | 214 MB</code></pre>
+<p>That’s nearly half a GB for our test data. This is pretty wasteful, so considering that production systems contain a <em>lot</em> more data than our toy, you can really save some space by not creating wasteful indexes.</p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">drop</span> <span class="kw">index</span> ix_customer_account;
+<span class="kw">drop</span> <span class="kw">index</span> ix_purchase_account;
+<span class="kw">drop</span> <span class="kw">index</span> ix_purchase_customer;</code></pre></div>
+<p>In the future, let’s not add indexes until we prove via our query plans that they are actually beneficial.</p>
+    </div>
+  </div>
 </div>
 
-<p>In PostgreSQL you can do really cool stuff!</p>
-<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">select</span> *
-<span class="kw">from</span> foo.bar
-<span class="kw">where</span> baz
-<span class="kw">order</span> <span class="kw">by</span> quux</code></pre></div>
-
     </div>
+
     <footer class="footer">
-      <div class="wrapper" style="padding-top: 19px">
-        <div class="text-muted" style="float: left">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
             Copyright © 2016
-        </div>
-        <div style="float: right">
-          <a title="Site generated by Hakyll" href="http://jaspervdj.be/hakyll">
-            <img alt="hakyll" src="../../images/hakyll.png" width="20" />
-          </a>
+          </div>
         </div>
       </div>
     </footer>
