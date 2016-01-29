@@ -3,16 +3,17 @@ CURRENT_REV := $(shell git rev-parse hakyll)
 all: watch
 
 site: clean
-	ghc --make -threaded site.hs
+	stack build
 
 build: site
-	./site build
+	stack exec site -- build
 
 watch: site build
-	./site watch -h 0.0.0.0
+	stack exec site -- watch -h 0.0.0.0
 
 clean:
-	rm -rf _site/* _store _cache site.o site.hi site
+	rm -rf _site/* _store _cache
+	stack clean
 
 clone:
 	rm -rf _site

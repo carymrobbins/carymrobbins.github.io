@@ -21,3 +21,4 @@ components/
 lib
 site
 *.iml
+.stack-work/
