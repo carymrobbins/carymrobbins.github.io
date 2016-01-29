@@ -9,7 +9,7 @@ build: site
 	./site build
 
 watch: site build
-	./site watch
+	./site watch -h 0.0.0.0
 
 clean:
 	rm -rf _site/* _store _cache site.o site.hi site
