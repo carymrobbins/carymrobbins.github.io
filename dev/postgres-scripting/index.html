@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Safe Scripting with PostgreSQL</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Safe Scripting with PostgreSQL</h1>
+    </div>
+    <div class="col-md-12">
+      <small>May 17, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>If you’ve ever worked with databases professionally, you should be well aware of <a href="https://en.wikipedia.org/wiki/SQL_injection">SQL injection</a>. When writing software, your driver should provide facilities for creating <a href="https://en.wikipedia.org/wiki/Prepared_statement">prepared statements</a> so you can safely pass user-supplied parameters without it wreaking havoc on your database.</p>
+<p><a href="https://xkcd.com/327/"> <img alt="Her daughter is named Help I'm trapped in a driver's license factory." src="http://imgs.xkcd.com/comics/exploits_of_a_mom.png" /> </a></p>
+<p>However, sometimes you may have a task so trivial it could just be written in Bash. PostgreSQL comes with the <a href="http://www.postgresql.org/docs/current/static/app-psql.html">psql</a> command-line tool, so we can just run our queries using that. Your first thought may be to do something like this -</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">psql</span> -c <span class="st">&quot;select relkind from pg_class where relname = '</span><span class="ot">$1</span><span class="st">'&quot;</span></code></pre></div>
+<p>Note however that if the argument contained the value <code>'; drop table foo; '</code> you’d end up with a dropped table! Generally, your scripts may not be vulnerable to this, but when they could be, it’s best to take some precautions.</p>
+<p>Luckily, <code>psql</code> can handle sanitizing input variables by using the <code>-v</code> flag. From <code>man psql</code> -</p>
+<pre><code>-v assignment
+--set=assignment
+--variable=assignment
+    Perform a variable assignment, like the \set meta-command. Note that you must separate name and
+    value, if any, by an equal sign on the command line. To unset a variable leave off the equal sign.
+    To set a variable with an empty value, use the equal sign but leave off the value. These
+    assignments are done during a very early stage of start-up, so variables reserved for internal
+    purposes might get overwritten later.</code></pre>
+<p>Here’s a sanitized version of our original implementation -</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">psql</span> -v name=<span class="st">&quot;</span><span class="ot">$1</span><span class="st">&quot;</span> <span class="kw">&lt;&lt;&lt;</span> <span class="st">&quot;select relkind from pg_class where relname = :'name'&quot;</span></code></pre></div>
+<p>There are a couple things to note regarding using variables -</p>
+<ul>
+<li>You <strong>cannot</strong> use the <code>-c</code> flag to pass in the SQL string. Instead, redirect the string using <code>&lt;&lt;&lt;</code>.</li>
+<li>While you <em>can</em> use the <code>:var</code> syntax, you should generally prefer the <code>:'var'</code> syntax. This way variables are always quoted. <code>psql</code> can infer the appropriate type of <code>'text'</code> values based on context, so this even works for numeric values.</li>
+</ul>
+<p>If your SQL is a bit longer, you could store it in a separate file and just redirect it from there.</p>
+<p><code>foo.sql</code></p>
+<div class="sourceCode"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><span class="kw">select</span> relkind
+<span class="kw">from</span> pg_class
+<span class="kw">where</span> relname = <span class="ch">:</span><span class="st">'name'</span></code></pre></div>
+<p><code>run-query</code></p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
+<span class="ot">sql_file=</span><span class="st">&quot;</span><span class="ot">$(</span><span class="kw">dirname</span> <span class="ot">$0)</span><span class="st">/foo.sql&quot;</span>
+<span class="kw">if [</span> <span class="ot">!</span> <span class="ot">-f</span> <span class="st">&quot;</span><span class="ot">$sql_file</span><span class="st">&quot;</span><span class="kw"> ]</span>; <span class="kw">then</span>
+  <span class="kw">&gt;&amp;2</span> <span class="kw">echo</span> <span class="st">&quot;SQL file not found: </span><span class="ot">$sql_file</span><span class="st">&quot;</span>
+  <span class="kw">exit</span> 1
+<span class="kw">fi</span>
+<span class="kw">psql</span> -X -v name=<span class="st">&quot;</span><span class="ot">$1</span><span class="st">&quot;</span> <span class="kw">&lt;</span> <span class="st">&quot;</span><span class="ot">$sql_file</span><span class="st">&quot;</span></code></pre></div>
+<p>Also note that I’m providing the <code>-X</code> flag to avoid reading the user’s <code>.psqlrc</code> file. From <code>man psql</code> -</p>
+<pre><code>-X,
+--no-psqlrc
+    Do not read the start-up file (neither the system-wide psqlrc file nor the user's ~/.psqlrc file).</code></pre>
+<p>Now we can safely pass any values to your script without fear.</p>
+<pre><code>$ chmod +x run-query
+$ ./run-query pg_type
+ relkind 
+---------
+ r
+(1 row)
+$ ./run-query &quot;'; drop table foo; '&quot;
+ relkind 
+---------
+(0 rows)</code></pre>
+<p>One caveat, variables don’t seem to work with the <code>\copy</code> command -</p>
+<pre><code>$ psql -X -v a=1 &lt;&lt;&lt; &quot;\\copy ( select :'a' + 2 as foo ) to stdout with csv header&quot;
+ERROR:  syntax error at or near &quot;:&quot;
+LINE 1: COPY  ( select : 'a' + 2 ) TO STDOUT with csv header
+                       ^</code></pre>
+<p>They <em>do</em> however work with the standard <code>copy</code> command</p>
+<pre><code>$ psql -X -v a=1 &lt;&lt;&lt; &quot;copy ( select :'a' + 2 as foo ) to stdout with csv header&quot;
+foo
+3</code></pre>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2016
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
