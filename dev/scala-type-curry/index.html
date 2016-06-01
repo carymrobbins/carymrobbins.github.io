@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Currying Type Parameters in Scala</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Currying Type Parameters in Scala</h1>
+    </div>
+    <div class="col-md-12">
+      <small>May 31, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>Scala doesn’t provide facilities to supply only some of the type parameters required by a method. If you wish to supply <em>any</em> of them, you must supply <em>all</em> of them.</p>
+<p>For instance, let’s say we wished to create a method to safely down-cast a value from one type to a possible subtype, but enforce at compile-time that the target type is indeed a subtype of the value’s class. Here’s a possible implementation -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">ClassTag</span>
+
+<span class="kw">def</span> down[B &gt;: A, A : ClassTag](b: B): Option[A] = implicitly[ClassTag[A]].<span class="fu">unapply</span>(b)</code></pre></div>
+<p>While this works, we must specify both the target subtype <em>and</em> the input type -</p>
+<pre><code>scala&gt; down[Any, Int](1)
+Option[Int] = Some(1)
+
+scala&gt; down[Any, Int](&quot;foo&quot;)
+Option[Int] = None
+
+scala&gt; down[CharSequence, String](&quot;foo&quot;: CharSequence)
+Option[String] = Some(foo)</code></pre>
+<p>Ideally, we’d like the input type inferred by the compiler, but unfortunately, Scala syntax doesn’t permit this.</p>
+<p>One <a href="http://stackoverflow.com/a/29202291/1313611">clever way</a> of getting around this might be to use an anonymous class to create a structural type -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
+  <span class="kw">def</span> apply[B &gt;: A](b: B)(<span class="kw">implicit</span> ct: ClassTag[A]): Option[A] = ct.<span class="fu">unapply</span>(b)
+}</code></pre></div>
+<p>Note that when using our new method, we’ll get the following warning -</p>
+<pre><code>scala&gt; down[Int](1: Any)
+&lt;console&gt;:13: warning: reflective access of structural type member method apply should be enabled
+by making the implicit value scala.language.reflectiveCalls visible.
+This can be achieved by adding the import clause 'import scala.language.reflectiveCalls'
+or by setting the compiler option -language:reflectiveCalls.
+See the Scala docs for value scala.language.reflectiveCalls for a discussion
+why the feature should be explicitly enabled.
+       down[Int](1: Any)
+           ^
+Option[Int] = Some(1)</code></pre>
+<p>In order to continue using the method and not receive warnings from its usage, we’d need to avoid the anonymous class or enable <code>reflectiveCalls</code>. I’ll demonstrate how we can avoid the anonymous class and <code>reflectiveCalls</code>, but first let’s ensure our logic works as intended.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; <span class="kw">val</span> x: Any = <span class="dv">1</span>
+
+scala&gt; down[Int](x)
+Option[Int] = Some(<span class="dv">1</span>)
+
+scala&gt; down[String](x)
+Option[String] = None
+
+scala&gt; <span class="kw">val</span> x: Int = <span class="dv">1</span>
+
+scala&gt; down[String](x)
+Option[String] = None</code></pre></div>
+<p>While this works, it doesn’t seem to enforce our compile-time check that the input type is a proper supertype of our target subtype. The problem here has to do with <em>type lubbing</em>, which basically means that the compiler will infer type parameters as the nearest common supertype. This becomes more apparent if we output the input type’s class -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
+  <span class="kw">def</span> apply[B &gt;: A](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ct2: ClassTag[B]): Option[A] = {
+    <span class="fu">println</span>(<span class="st">&quot;** B == &quot;</span> + ct2.<span class="fu">runtimeClass</span>)
+    ct.<span class="fu">unapply</span>(b)
+  }
+}</code></pre></div>
+<pre><code>scala&gt; down[String](1: Int)
+** B == class java.lang.Object
+Option[String] = None</code></pre>
+<p>To avoid type lubbing, we can enforce that evidence exists proving that A is a subtype of B -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
+  <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; down[String](<span class="st">&quot;foo&quot;</span>: CharSequence)
+Option[String] = Some(foo)
+
+scala&gt; down[String](<span class="dv">1</span>: Int)
+&lt;console&gt;:<span class="dv">10</span>: error: Cannot prove that String &lt;:&lt; Int.
+              down[String](<span class="dv">1</span>: Int)</code></pre></div>
+<p>Now the compiler rejects the cases it can prove will never succeed. While you could stop here, I have a few issues with this implementation -</p>
+<ul>
+<li>We have warnings to address (as I prefer to use <code>-Xfatal-warnings</code>)</li>
+<li>The method return type is inferred, while I prefer public methods to have explicit return types to make things simpler for us humans.</li>
+<li>The inferred return type is a structural type, of course, and that’s messy to annotate.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; down[Int]
+AnyRef{<span class="kw">def</span> apply[A](a: A)(<span class="kw">implicit</span> ct: scala.<span class="fu">reflect</span>.<span class="fu">ClassTag</span>[Int],<span class="kw">implicit</span> ev: &lt;:&lt;[Int,A]): Option[Int]} = $anon$<span class="dv">1</span>@6b85300e</code></pre></div>
+<p>Ok, so let’s knock out three birds with one stone and wrap it in a utility object -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> CastUtil {
+
+  <span class="kw">def</span> down[A]: _Down[A] = _down.<span class="fu">asInstanceOf</span>[_Down[A]]
+
+  <span class="kw">class</span> _Down[A] <span class="kw">private</span>[CastUtil] {
+    <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
+  }
+  <span class="kw">private</span> <span class="kw">lazy</span> <span class="kw">val</span> _down = <span class="kw">new</span> _Down[Nothing]
+}</code></pre></div>
+<p>We define an explicit class to handle our downcasting. This avoids the anonymous class, avoids <code>reflectiveCalls</code>, and gives us clean and explicit return types. We also use a <code>lazy val</code> to give us a singleton instance of the <code>_Down</code> class to avoid creating a new instance every time we call the method.</p>
+<pre><code>scala&gt; CastUtil.down[Int]
+CastUtil._Down[Int] = CastUtil$_Down@2e6a8155
+
+scala&gt; CastUtil.down[Int]
+CastUtil._Down[Int] = CastUtil$_Down@2e6a8155
+
+scala&gt; // ^^ same instance both times
+
+scala&gt; CastUtil.down[String](&quot;foo&quot;: CharSequence)
+Option[CharSequence] = Some(foo)
+
+scala&gt; down[String](1: Any)
+res9: Option[String] = None
+
+scala&gt; CastUtil.down[String](null: CharSequence)
+Option[CharSequence] = None
+
+scala&gt; CastUtil.down[String](1: Int)
+&lt;console&gt;:10: error: Cannot prove that String &lt;:&lt; Int.
+              CastUtil.down[String](1: Int)
+                                   ^</code></pre>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2016
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
