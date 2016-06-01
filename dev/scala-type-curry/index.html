@@ -133,9 +133,9 @@ AnyRef{<span class="kw">def</span> apply[A](a: A)(<span class="kw">implicit</spa
   <span class="kw">class</span> _Down[A] <span class="kw">private</span>[CastUtil] {
     <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
   }
-  <span class="kw">private</span> <span class="kw">lazy</span> <span class="kw">val</span> _down = <span class="kw">new</span> _Down[Nothing]
+  <span class="kw">object</span> _down <span class="kw">extends</span> _Down[Nothing]
 }</code></pre></div>
-<p>We define an explicit class to handle our downcasting. This avoids the anonymous class, avoids <code>reflectiveCalls</code>, and gives us clean and explicit return types. We also use a <code>lazy val</code> to give us a singleton instance of the <code>_Down</code> class to avoid creating a new instance every time we call the method.</p>
+<p>We define an explicit class to handle our downcasting. This avoids the anonymous class, avoids <code>reflectiveCalls</code>, and gives us clean and explicit return types. We define the <code>object _down</code> to give us a singleton instance of the <code>_Down</code> class to avoid creating a new instance every time we call the method.</p>
 <pre><code>scala&gt; CastUtil.down[Int]
 CastUtil._Down[Int] = CastUtil$_Down@2e6a8155
 
@@ -147,7 +147,7 @@ scala&gt; // ^^ same instance both times
 scala&gt; CastUtil.down[String](&quot;foo&quot;: CharSequence)
 Option[CharSequence] = Some(foo)
 
-scala&gt; down[String](1: Any)
+scala&gt; CastUtil.down[String](1: Any)
 res9: Option[String] = None
 
 scala&gt; CastUtil.down[String](null: CharSequence)
