@@ -107,7 +107,7 @@ Option[String] = None</code></pre></div>
 <pre><code>scala&gt; down[String](1: Int)
 ** B == class java.lang.Object
 Option[String] = None</code></pre>
-<p>To avoid type lubbing, we can enforce that evidence exists proving that A is a subtype of B -</p>
+<p>To avoid type lubbing, we can enforce that evidence exists proving that A is a subtype of B. This works since the evidence is checked <em>after</em> the type <code>B</code> type parameter is inferred.</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
   <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
 }</code></pre></div>
