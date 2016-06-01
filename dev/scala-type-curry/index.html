@@ -58,7 +58,9 @@
 <p>For instance, let’s say we wished to create a method to safely down-cast a value from one type to a possible subtype, but enforce at compile-time that the target type is indeed a subtype of the value’s class. Here’s a possible implementation -</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">ClassTag</span>
 
-<span class="kw">def</span> down[B &gt;: A, A : ClassTag](b: B): Option[A] = implicitly[ClassTag[A]].<span class="fu">unapply</span>(b)</code></pre></div>
+<span class="kw">def</span> down[B &gt;: A, A : ClassTag](b: B): Option[A] = {
+  implicitly[ClassTag[A]].<span class="fu">unapply</span>(b)
+}</code></pre></div>
 <p>While this works, we must specify both the target subtype <em>and</em> the input type -</p>
 <pre><code>scala&gt; down[Any, Int](1)
 Option[Int] = Some(1)
@@ -71,7 +73,9 @@ Option[String] = Some(foo)</code></pre>
 <p>Ideally, we’d like the input type inferred by the compiler, but unfortunately, Scala syntax doesn’t permit this.</p>
 <p>One <a href="http://stackoverflow.com/a/29202291/1313611">clever way</a> of getting around this might be to use an anonymous class to create a structural type -</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
-  <span class="kw">def</span> apply[B &gt;: A](b: B)(<span class="kw">implicit</span> ct: ClassTag[A]): Option[A] = ct.<span class="fu">unapply</span>(b)
+  <span class="kw">def</span> apply[B &gt;: A](b: B)(<span class="kw">implicit</span> ct: ClassTag[A]): Option[A] = {
+    ct.<span class="fu">unapply</span>(b)
+  }
 }</code></pre></div>
 <p>Note that when using our new method, we’ll get the following warning -</p>
 <pre><code>scala&gt; down[Int](1: Any)
@@ -109,7 +113,9 @@ Option[String] = None</code></pre></div>
 Option[String] = None</code></pre>
 <p>To avoid type lubbing, we can enforce that evidence exists proving that A is a subtype of B. This works since the evidence is checked <em>after</em> the <code>B</code> type parameter is inferred.</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> down[A] = <span class="kw">new</span> {
-  <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
+  <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = {
+    ct.<span class="fu">unapply</span>(b)
+  }
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; down[String](<span class="st">&quot;foo&quot;</span>: CharSequence)
 Option[String] = Some(foo)
@@ -130,12 +136,14 @@ AnyRef{<span class="kw">def</span> apply[A](a: A)(<span class="kw">implicit</spa
 
   <span class="kw">def</span> down[A]: _Down[A] = _down.<span class="fu">asInstanceOf</span>[_Down[A]]
 
-  <span class="kw">class</span> _Down[A] <span class="kw">private</span>[CastUtil] {
-    <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = ct.<span class="fu">unapply</span>(b)
+  <span class="kw">final</span> <span class="kw">class</span> _Down[A] <span class="kw">private</span>[CastUtil] {
+    <span class="kw">def</span> apply[B](b: B)(<span class="kw">implicit</span> ct: ClassTag[A], ev: A &lt;:&lt; B): Option[A] = {
+      ct.<span class="fu">unapply</span>(b)
+    }
   }
-  <span class="kw">object</span> _down <span class="kw">extends</span> _Down[Nothing]
+  <span class="kw">private</span> <span class="kw">lazy</span> <span class="kw">val</span> _down = <span class="kw">new</span> _Down[Nothing]
 }</code></pre></div>
-<p>We define an explicit class to handle our downcasting. This avoids the anonymous class, avoids <code>reflectiveCalls</code>, and gives us clean and explicit return types. We define the <code>object _down</code> to give us a singleton instance of the <code>_Down</code> class to avoid creating a new instance every time we call the method.</p>
+<p>We define an explicit class to handle our downcasting. This avoids the anonymous class, avoids <code>reflectiveCalls</code>, and gives us clean and explicit return types. We define the <code>lazy val _down</code> to give us a singleton instance of the <code>_Down</code> class to avoid creating a new instance every time we call the method.</p>
 <pre><code>scala&gt; CastUtil.down[Int]
 CastUtil._Down[Int] = CastUtil$_Down@2e6a8155
 
