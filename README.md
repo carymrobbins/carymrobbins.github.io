@@ -1,7 +1,13 @@
 # caryrobbins.com
 
-## Setup
+## Run the site locally
 
 ```
-$ cabal install -j -fhighlighting --dependencies-only
+$ make
+```
+
+## Deploy the site
+
+```
+$ make deploy
 ```

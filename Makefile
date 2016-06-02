@@ -3,7 +3,7 @@ CURRENT_REV := $(shell git rev-parse hakyll)
 all: watch
 
 site: clean
-	stack build
+	stack build --flag pandoc:highlighting
 
 build: site
 	stack exec site -- build
