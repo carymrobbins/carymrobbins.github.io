@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Fixing Linux Wifi on an HP Stream laptop</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Fixing Linux Wifi on an HP Stream laptop</h1>
+    </div>
+    <div class="col-md-12">
+      <small>June 10, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p><strong>TL;DR</strong> - The following gets wifi working well on the HP Stream laptop running Ubuntu 14.04.4 LTS -</p>
+<pre><code>$ sudo add-apt-repository ppa:hanipouspilot/rtlwifi
+$ sudo apt-get update
+$ sudo apt-get install rtlwifi-new-dkms linux-firmware
+$ sudo modprobe -r rtl8723be
+$ sudo modprobe -v rtl8723be isp=0 ant_sel=2
+$ echo 'options rtl8723be isp=0 ant_sel=2' | sudo tee /etc/modprobe.d/rtl8723be.conf</code></pre>
+<hr />
+<p>I purchased an <a href="http://store.hp.com/us/en/mdp/Laptops/hp-stream-notebook#!&amp;TabName=vao&amp;jumpid=ps_gymaw6xezr&amp;aoid=51319&amp;002=2190637&amp;004=20637427508&amp;005=104331204308&amp;006=123108661148&amp;007=Search&amp;008=&amp;025=c&amp;026=">HP Stream laptop</a> for my daughter this past Christmas and she has loved it. However, I noticed that it seemed to run awfully slow for her most of the time. She had gotten relatively accustomed to it and, naturally, this was a nuisance to me. I convinced her that we should switch to Linux and see how it does. We installed Ubuntu 14.04.4 LTS and performance was great! She instantly noticed the difference and became very excited. However, as always, there was some work to be done. Wifi was very inconsistent and the signal was extremely low.</p>
+<p>I discovered that there was an <a href="https://github.com/lwfinger/rtlwifi_new">rtlwifi</a> driver available that we could build from source; however, this didn’t seem to improve anything. Later, I realized that this driver was also managed in an apt repo, so I quickly switched to use the PPA -</p>
+<pre><code>$ sudo add-apt-repository ppa:hanipouspilot/rtlwifi
+$ sudo apt-get update
+$ sudo apt-get install rtlwifi-new-dkms linux-firmware</code></pre>
+<p>Of course, this didn’t really help things - signal was still very low and the connection would regularly disconnect. Upon perusing various forums, I found that someone mentioned <a href="http://h30434.www3.hp.com/t5/Notebook-Wireless-and-Networking/Issues-with-HP-Stream-11/td-p/5461096">selecting Antenna 2</a>. It took me a while (in spite of the github issue link) to realize how to do this. The key is in setting <code>ant_sel=2</code> in the driver configuration. We can test it immediately without having to reboot -</p>
+<pre><code>$ sudo modprobe -r rtl8723be
+$ sudo modprobe -v rtl8723be isp=0 ant_sel=2</code></pre>
+<p>Like magic, once loaded, the wifi signal was very strong and worked as expected. To make the configuration permanent upon reboot, we just need to add our settings to <code>/etc/modprobe.d/rtl8723be.conf</code> -</p>
+<pre><code>$ echo 'options rtl8723be isp=0 ant_sel=2' | sudo tee /etc/modprobe.d/rtl8723be.conf</code></pre>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2016
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
