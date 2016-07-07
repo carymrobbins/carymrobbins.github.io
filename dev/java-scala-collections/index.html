@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Converting Java collections to Scala collections from Java</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Converting Java collections to Scala collections from Java</h1>
+    </div>
+    <div class="col-md-12">
+      <small>July  7, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>Converting between Java and Scala collections from Scala code is remarkably easy -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; <span class="kw">import</span> scala.<span class="fu">collection</span>.<span class="fu">JavaConverters</span>.<span class="fu">_</span>
+
+scala&gt; <span class="kw">val</span> jList = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">ArrayList</span>[String]
+
+scala&gt; jList.<span class="fu">asScala</span>
+scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Buffer</span>[String] = Buffer()
+
+scala&gt; jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span>
+Seq[String] = Buffer()
+
+scala&gt; <span class="kw">val</span> sList = List[String]()
+List[String] = List()
+
+scala&gt; sList.<span class="fu">asJava</span>
+java.<span class="fu">util</span>.<span class="fu">List</span>[String] = []
+
+scala&gt; <span class="kw">val</span> jMap = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">HashMap</span>[String,String]
+
+scala&gt; jMap.<span class="fu">asScala</span>
+res6: scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Map</span>[String,String] = Map()
+
+scala&gt; jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span>
+res7: scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String] = Map()</code></pre></div>
+<p>But doing the same from Java is a little more difficult. We can see what Scala is doing under the hood by using <code>reify</code> then use the same approach from Java -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; <span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">runtime</span>.{universe =&gt; u}
+
+scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span> })
+Expr[Seq[String]](
+  JavaConverters.<span class="fu">asScalaBufferConverter</span>($read.<span class="fu">jList</span>).<span class="fu">asScala</span>.<span class="fu">toSeq</span>
+)
+
+scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span> })
+Expr[scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String]](
+  JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(
+    $read.$iw.$iw.$iw.$iw.<span class="fu">jMap</span>
+  ).<span class="fu">asScala</span>.<span class="fu">toMap</span>(Predef.$conforms)
+)</code></pre></div>
+<p>In order to pull this off in Java, we can just follow the calls presented in the desugared ASTs from above -</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.*;</span>
+<span class="kw">import scala.Predef;</span>
+<span class="kw">import scala.collection.Seq;</span>
+<span class="kw">import scala.collection.JavaConverters;</span>
+
+<span class="kw">public</span> <span class="kw">class</span> Main {
+  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String args[]) {
+    <span class="co">// Java collections.</span>
+    List&lt;String&gt; jList = <span class="kw">new</span> ArrayList&lt;&gt;();
+    Map&lt;String, String&gt; jMap = <span class="kw">new</span> HashMap&lt;&gt;();
+
+    <span class="co">// Convert to Scala collections.</span>
+    Seq&lt;String&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();
+    Map&lt;String, String&gt; sMap =
+      JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(jMap).<span class="fu">asScala</span>().<span class="fu">toMap</span>(Predef.$<span class="fu">conforms</span>());
+  }
+}</code></pre></div>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2016
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
