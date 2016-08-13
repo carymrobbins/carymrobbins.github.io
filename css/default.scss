@@ -17,6 +17,12 @@ pre.text > code {
   @extend .sourceCode
 }
 
+// Improve upon bootstrap's <code> style.
+code {
+  color: black;
+  background-color: #E9E9E9;
+}
+
 h2 {
   font-weight: 700;
 }
