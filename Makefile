@@ -1,4 +1,8 @@
 CURRENT_REV := $(shell git rev-parse hakyll)
+REMOTE := $(shell git remote get-url origin)
+GIT_NAME := $(shell git config user.name)
+GIT_EMAIL := $(shell git config user.email)
+GIT_SSHCOMMAND := $(shell git config core.sshcommand)
 
 all: watch
 
@@ -19,6 +23,10 @@ clean:
 clone:
 	rm -rf _site
 	git clone git@github.com:carymrobbins/carymrobbins.github.io.git _site
+	cd _site; git config user.name "$(GIT_NAME)"; git config user.email "$(GIT_EMAIL)"
+ifdef GIT_SSHCOMMAND
+	cd _site; git config core.sshcommand "$(GIT_SSHCOMMAND)"
+endif
 
 check_branch:
 	@echo "* Validating on hakyll branch"
@@ -33,7 +41,15 @@ check_origin:
 	git fetch origin
 	test "$(CURRENT_REV)" = "$(shell git rev-parse origin/hakyll)"
 
-check_all: check_branch check_tree check_origin
+check_git_user:
+	@echo "* Validating git config user.name is set"
+	test "$(GIT_NAME)" != ""
+
+check_git_email:
+	@echo "* Validating git config user.email is set"
+	test "$(GIT_EMAIL)" != ""
+
+check_all: check_branch check_tree check_origin check_git_user check_git_email
 
 deploy: check_all clean clone build
 	cd _site; git add --all; git commit -m "Deploy $(CURRENT_REV)"; git push
