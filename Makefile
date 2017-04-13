@@ -3,6 +3,7 @@ CURRENT_REV := $(shell git rev-parse hakyll)
 all: watch
 
 site: clean
+	bower install
 	stack build --flag pandoc:highlighting
 
 build: site
