@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Intro to Scala Macros</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Intro to Scala Macros</h1>
+    </div>
+    <div class="col-md-12">
+      <small>August 12, 2016</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>Scala macros can be daunting at first, but once you get the hang of them they become an invaluable tool for removing boilerplate from your code. We’ll take a look at implementing a macro from scratch using the <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">Macro Paradise</a> compiler plugin.</p>
+<p>Let’s implement a simpler syntax for declaring Algebraic Data Types (ADTs) in Scala. I have an implementation of this on <a href="https://github.com/carymrobbins/scala-adt">GitHub</a>, but we’ll target a simpler version for this exercise.</p>
+<h2 id="reviewing-algebraic-data-types">Reviewing Algebraic Data Types</h2>
+<p>In Scala, we represent ADTs by way of subtype polymorphism (i.e. inheritance).</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">sealed</span> <span class="kw">trait</span> Maybe[+A]
+<span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> Just[+A](a: A) <span class="kw">extends</span> Maybe[A]
+<span class="kw">case</span> <span class="kw">object</span> Nix <span class="kw">extends</span> Maybe[Nothing]</code></pre></div>
+<p>Compare this with Haskell, which is significantly more terse than Scala -</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Maybe</span> a <span class="fu">=</span> <span class="dt">Just</span> a <span class="fu">|</span> <span class="dt">Nix</span></code></pre></div>
+<p>Wouldn’t it be nice if we could have something like the following in Scala and get the same thing?</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }</code></pre></div>
+<p>With macro annotations, this is possible! Note that macros, when applied to classes, traits, or objects, can expand to a single class/trait/object or a class/trait with a companion object. So let’s try to target the following output for our macro -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">sealed</span> <span class="kw">trait</span> Maybe[+A]
+<span class="kw">object</span> Maybe {
+  <span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> Just[+A](a: A) <span class="kw">extends</span> Maybe[A]
+  <span class="kw">case</span> <span class="kw">object</span> Nix <span class="kw">extends</span> Maybe[Nothing]
+}</code></pre></div>
+<h2 id="comprehension">Comprehension</h2>
+<p>A quick note on comprehending this tutorial. I strongly recommend actually writing the code manually as you go along. Simply reading or pasting the code won’t help you gain the intuition needed as efficiently as typing the code yourself. Enjoy!</p>
+<h2 id="dependencies">Dependencies</h2>
+<p>Let’s get our <strong>build.sbt</strong> to match something like the following -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">name := <span class="st">&quot;scala-macros-intro&quot;</span>
+
+version := <span class="st">&quot;1.0&quot;</span>
+
+scalaVersion := <span class="st">&quot;2.11.8&quot;</span>
+
+scalacOptions ++= Seq(<span class="st">&quot;-unchecked&quot;</span>, <span class="st">&quot;-deprecation&quot;</span>, <span class="st">&quot;-feature&quot;</span>, <span class="st">&quot;-Xfatal-warnings&quot;</span>)
+scalacOptions in Test ++= Seq(<span class="st">&quot;-Yrangepos&quot;</span>)
+
+crossScalaVersions := Seq(
+  (<span class="dv">2</span> to <span class="dv">6</span>).<span class="fu">map</span>(<span class="st">&quot;2.10.&quot;</span> + _),
+  (<span class="dv">0</span> to <span class="dv">8</span>).<span class="fu">map</span>(<span class="st">&quot;2.11.&quot;</span> + _)
+).<span class="fu">flatten</span>
+
+<span class="fu">addCompilerPlugin</span>(<span class="st">&quot;org.scalamacros&quot;</span> % <span class="st">&quot;paradise&quot;</span> % <span class="st">&quot;2.1.0&quot;</span> cross CrossVersion.<span class="fu">full</span>)
+
+libraryDependencies &lt;+= <span class="fu">scalaVersion</span>(<span class="st">&quot;org.scala-lang&quot;</span> % <span class="st">&quot;scala-reflect&quot;</span> % _)
+
+libraryDependencies += <span class="st">&quot;org.scalacheck&quot;</span> %% <span class="st">&quot;scalacheck&quot;</span> % <span class="st">&quot;1.13.2&quot;</span> % <span class="st">&quot;test&quot;</span></code></pre></div>
+<p>If there are newer versions available, you may wish to change the values above.</p>
+<h2 id="implementation">Implementation</h2>
+<p>Let’s start by stubbing out a macro definition.</p>
+<p><strong>src/main/scala/intro/macros/ADT.scala</strong></p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">package</span> intro.<span class="fu">macros</span>
+
+<span class="kw">import</span> scala.<span class="fu">annotation</span>.<span class="fu">StaticAnnotation</span>
+<span class="kw">import</span> scala.<span class="fu">language</span>.<span class="fu">experimental</span>.<span class="fu">macros</span>
+<span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">macros</span>.<span class="fu">whitebox</span>
+
+<span class="kw">class</span> ADT <span class="kw">extends</span> StaticAnnotation {
+  <span class="kw">def</span> <span class="fu">macroTransform</span>(annottees: Any*): Any = macro ADT.<span class="fu">impl</span>
+}
+
+<span class="kw">object</span> ADT {
+
+  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {
+    ???
+  }
+}</code></pre></div>
+<p>In true TDD style, let’s go ahead and create an accompanying test case -</p>
+<p><strong>src/test/scala/intro/macros/ADTSpec.scala</strong></p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">package</span> intro.<span class="fu">macros</span>
+
+<span class="kw">import</span> org.<span class="fu">scalacheck</span>.<span class="fu">Properties</span>
+
+@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }
+
+<span class="kw">class</span> ADTSpec <span class="kw">extends</span> Properties(<span class="st">&quot;@ADT macro&quot;</span>) {
+
+  <span class="co">// Import Just and Nix</span>
+  <span class="kw">import</span> Maybe.<span class="fu">_</span>
+
+  <span class="fu">property</span>(<span class="st">&quot;generates Just constructor&quot;</span>) = {
+    <span class="fu">Just</span>(<span class="dv">0</span>) == <span class="fu">Just</span>(<span class="dv">0</span>)
+  }
+
+  <span class="fu">property</span>(<span class="st">&quot;generates Nix singleton&quot;</span>) = {
+    Nix == Nix
+  }
+}</code></pre></div>
+<p>Let’s start up SBT and confirm we get a failing test case -</p>
+<pre class="text"><code>% sbt
+&gt; compile
+[success]
+&gt; test
+[error] ADTSpec.scala:5: exception during macro expansion:
+[error] scala.NotImplementedError: an implementation is missing
+...</code></pre>
+<p>We’ll also get a bunch of other compiler errors as well. Let’s focus on getting compilable code to be generated from our macro and then we can confirm that the tests pass.</p>
+<p>Let’s take another look at that <code>impl</code> method. Pretty much all of our macro logic will reside in the body of this method.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {
+    ???
+  }</code></pre></div>
+<p>There’s a few things to note here. The <code>c</code> passed in is the macro <code>Context</code>. This value contains all of the types and constructors required for building the resulting <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">ASTs</a> wee need.</p>
+<p>The second parameter is <code>annottees</code> which is the AST we have annotated. For instance, our usage was the following -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }</code></pre></div>
+<p>So our <code>annottees</code> value will contain that entire <code>trait</code> definition. If we had also defined a companion object, it would be included in the <code>annottees</code> value as well.</p>
+<p>Finally, we return <code>c.universe.Tree</code>, which is just a resulting AST to replace our input AST.</p>
+<p>To get a better feel for what’s going on here and how to actually deal with the AST input, let’s just print out the raw tree. For convenience, let’s just import everything from <code>c.universe</code> as it contains a bunch of stuff we’ll need for implementing our macro, including the <code>showRaw</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {
+    <span class="kw">import</span> c.<span class="fu">universe</span>.<span class="fu">_</span>
+    <span class="fu">println</span>(s<span class="st">&quot;ANNOTTEES: ${showRaw(annottees)}&quot;</span>)
+    ???
+  }</code></pre></div>
+<pre class="text"><code>&gt; test
+ANNOTTEES: List(Expr(ClassDef(Modifiers(ABSTRACT | DEFAULTPARAM/TRAIT), TypeName(&quot;Maybe&quot;), List(TypeDef(Modifiers(PARAM), TypeName(&quot;A&quot;), List(), TypeBoundsTree(EmptyTree, EmptyTree))), Template(List(Select(Ident(scala), TypeName(&quot;AnyRef&quot;))), noSelfType, List(DefDef(Modifiers(), TermName(&quot;$init$&quot;), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(())))), Apply(Ident(TermName(&quot;Just&quot;)), List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;))))), Ident(TermName(&quot;Nix&quot;)))))))</code></pre>
+<p>Whoa, that’s a little hard to look at. I’ve written a simple Haskell script called <a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/pprint-parens.hs">pprint-parens.hs</a>, so feel free to use it while following along. Simply run the script and it will await for text from stdin, so paste your raw AST and use <code>ctrl+d</code> to tell it you’re done. The tree above then becomes (showing just the first ten lines for brevity) -</p>
+<pre class="text"><code>% pprint-parens &gt; ast
+&lt;paste raw tree&gt;
+&lt;press ctrl+d&gt;
+% head -n10 ast</code></pre>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">List(
+  <span class="fu">Expr</span>(
+    <span class="fu">ClassDef</span>(
+      <span class="fu">Modifiers</span>(ABSTRACT | DEFAULTPARAM/TRAIT), <span class="fu">TypeName</span>(<span class="st">&quot;Maybe&quot;</span>), List(
+        <span class="fu">TypeDef</span>(
+          <span class="fu">Modifiers</span>(PARAM), <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>), List(), <span class="fu">TypeBoundsTree</span>(
+            EmptyTree, EmptyTree
+          )
+        )
+      ), <span class="fu">Template</span>(</code></pre></div>
+<p>This may be a little intimidating, but the most important part is to take note of the first few lines. Our <code>trait</code> is essentially represented as -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">List(<span class="fu">Expr</span>(<span class="fu">ClassDef</span>(...)))</code></pre></div>
+<p>So let’s match on that case, failing for other trees which we won’t handle at the moment -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> ADT {
+
+  <span class="kw">val</span> MACRO_NAME = <span class="st">&quot;@ADT&quot;</span>
+
+  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {
+    <span class="kw">import</span> c.<span class="fu">universe</span>.<span class="fu">_</span>
+
+    <span class="kw">def</span> <span class="fu">fail</span>(msg: String) = c.<span class="fu">abort</span>(c.<span class="fu">enclosingPosition</span>, msg)
+
+    <span class="kw">def</span> <span class="fu">run</span>(): Tree = annottees <span class="kw">match</span> {
+      <span class="co">// @ADT trait/class Foo { ... }</span>
+      <span class="kw">case</span> List(<span class="fu">Expr</span>(cls: ClassDef)) =&gt; ???
+
+      <span class="kw">case</span> _ =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Invalid $MACRO_NAME usage&quot;</span>)
+    }
+
+    <span class="fu">run</span>()
+  }
+}</code></pre></div>
+<p>You’ll also notice that I’m defining <code>defs</code> within our <code>impl</code> method instead of outside of it. The main reason for this is that it’s much simpler to re-use the names imported from <code>c.universe._</code>; otherwise, we’d have to pass <code>c</code> around to all of the helper methods.</p>
+<p>Now let’s start deconstructing the AST and inspecting it. First, we’ll assert that the class we’re dealing with is <em>actually</em> a trait.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">    <span class="kw">def</span> <span class="fu">run</span>(): Tree = annottees <span class="kw">match</span> {
+      <span class="co">// @ADT trait Foo { ... }</span>
+      <span class="kw">case</span> List(<span class="fu">Expr</span>(cls: ClassDef)) =&gt; <span class="fu">runClass</span>(cls)
+
+      <span class="kw">case</span> _ =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Invalid $MACRO_NAME usage&quot;</span>)
+    }
+
+    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {
+      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls
+      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)
+      ???
+    }</code></pre></div>
+<p>Now we’re at the point where we’ll need to inspect our input AST (which we printed earlier) to see how our constructors (<code>Just(a: A)</code> and <code>Nix</code>) are appearing.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {
+      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls
+      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)
+
+      clsTemplate.<span class="fu">body</span>.<span class="fu">zipWithIndex</span>.<span class="fu">foreach</span> { <span class="kw">case</span> (part, i) =&gt;
+        <span class="fu">println</span>(s<span class="st">&quot;part $i; ${showRaw(part)}&quot;</span>)
+      }
+      ???
+    }</code></pre></div>
+<pre class="text"><code>&gt; test
+part 0; DefDef(Modifiers(), TermName(&quot;$init$&quot;), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(()))))
+part 1; Apply(Ident(TermName(&quot;Just&quot;)), List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;)))))
+part 2; Ident(TermName(&quot;Nix&quot;))</code></pre>
+<p>So there’s a special <code>$init$</code> method, which we’ll want to ignore, and then we have our constructors. Scala sees the <code>Just(a: A)</code> as an <code>Apply</code> and the <code>Nix</code> as a simple <code>Ident</code>. So we can just pick out the parts that we need.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {
+      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls
+      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)
+
+      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {
+        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; (name, args)
+        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; (name, Nil)
+      }
+
+      ctors.<span class="fu">foreach</span> { <span class="kw">case</span> (name, args) =&gt; <span class="fu">println</span>(s<span class="st">&quot;$name: ${showRaw(args)}&quot;</span>) }
+
+      ???
+    }</code></pre></div>
+<pre class="text"><code>&gt; test
+Just: List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;))))
+Nix: List()</code></pre>
+<p>Ok, we see what we have to work with, so let’s stub out our resulting trait and companion object using <em>quasiquotes</em> (<code>q&quot;...&quot;</code> syntax). Quasiquotes essentially take Scala-like syntax inside of a quasiquote string and generate an AST from it. This is particularly useful so you don’t have to manually construct all of the AST trees yourself. While there will be plenty of times you <em>will</em> need to construct ASTs manually, using quasiquotes makes the entire process much simpler.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {
+      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls
+      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)
+
+      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {
+        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; (name, args)
+        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; (name, Nil)
+      }
+
+      q<span class="st">&quot;&quot;&quot;</span>
+        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]
+        <span class="kw">object</span> $clsName {
+          <span class="co">// TODO</span>
+        }
+      <span class="st">&quot;&quot;&quot;</span>
+    }</code></pre></div>
+<p>The <code>..$clsParams</code> syntax in the quasiquotes expands <code>List</code> values for you. In this case, the <code>clsParams</code> is a <code>List[TypeDef]</code>, so it will automatically turn that into a list of type parameters. The <code>..</code> technique in quasiquotes is invaluable to making AST constructing less painful.</p>
+<pre class="text"><code>&gt; test
+[error]  found   : c.universe.TypeName
+[error]  required: c.universe.TermName
+[error]         object $clsName {
+[error]                 ^</code></pre>
+<p>Oops, it seems we need to use <code>TermName</code> for an <code>object</code> name. Converting between <code>TypeName</code> and <code>TermName</code> is pretty simple; just use the <code>.toTypeName</code> or <code>.toTermName</code> method.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">      q<span class="st">&quot;&quot;&quot;</span>
+        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]
+        <span class="kw">object</span> ${clsName.<span class="fu">toTermName</span>} {
+          <span class="co">// TODO</span>
+        }
+      <span class="st">&quot;&quot;&quot;</span></code></pre></div>
+<pre class="text"><code>&gt; test
+[error] ADTSpec.scala:10: not found: value Just
+[error]     Just(0) == Just(0)
+[error]     ^</code></pre>
+<p>Ok, this is good, we just need to actually generate the appropriate classes so we have <code>Just</code> and <code>Nix</code> in scope.</p>
+<p>If we look back at our input AST, we can see how the trait’s type parameters are represented -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">        <span class="fu">TypeDef</span>(
+          <span class="fu">Modifiers</span>(PARAM), <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>), List(), <span class="fu">TypeBoundsTree</span>(
+            EmptyTree, EmptyTree
+          )
+        )</code></pre></div>
+<p>So we can get a list of the type parameters from the <code>clsParams</code> -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">      <span class="kw">val</span> typeParams = clsParams.<span class="fu">collect</span> {
+        <span class="kw">case</span> t: TypeDef <span class="kw">if</span> t.<span class="fu">mods</span>.<span class="fu">hasFlag</span>(Flag.<span class="fu">PARAM</span>) =&gt; t.<span class="fu">name</span>
+      }</code></pre></div>
+<p>Now, before we actually start writing the code that needs to construct the appropriate ASTs, we should probably know what we want our ASTs to look like. Generally, the best way to do this is to use <code>scalac</code> to print the trees. So let’s write the following to a new file, <strong>expected.scala</strong>. You can then use my <a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/scalac-ast">scalac-ast</a> script which simplifies printing trees with <code>scalac</code>.</p>
+<pre class="text"><code>% cat expected.scala
+sealed trait Maybe[+A]
+object Maybe {
+  final case class Just[+A](a: A) extends Maybe[A]
+  case object Nix extends Maybe[Nothing]
+}
+
+% scalac-ast expected.scala &gt; expected.ast
+
+% pprint-parens.hs &lt; expected.ast &gt; expected.ast.pretty
+
+% head -n10 expected.ast.pretty
+[[syntax trees at end of parser]]// Scala source: expected.scala
+PackageDef(
+  Ident(
+    TermName(&quot;&lt;empty&gt;&quot;)
+  ), List(
+    ClassDef(
+      Modifiers(ABSTRACT | INTERFACE | SEALED | DEFAULTPARAM/TRAIT), TypeName(
+        &quot;Maybe&quot;
+      ), List(
+        TypeDef(</code></pre>
+<p>If we look for <code>CASEACCESSOR</code>, we can find how to construct the appropriate AST for case class arguments -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">                <span class="fu">ValDef</span>(
+                  <span class="fu">Modifiers</span>(CASEACCESSOR | PARAMACCESSOR), <span class="fu">TermName</span>(<span class="st">&quot;a&quot;</span>), <span class="fu">Ident</span>(
+                    <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>)
+                  ), EmptyTree
+                ), <span class="fu">DefDef</span>(</code></pre></div>
+<p>Now we have enough information to write a function which can construct the AST for a case class.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {
+      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls
+      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)
+
+      <span class="kw">val</span> typeParams = clsParams.<span class="fu">collect</span> {
+        <span class="kw">case</span> t: TypeDef <span class="kw">if</span> t.<span class="fu">mods</span>.<span class="fu">hasFlag</span>(Flag.<span class="fu">PARAM</span>) =&gt; t.<span class="fu">name</span>
+      }
+
+      <span class="kw">def</span> <span class="fu">mkCaseClass</span>(name: TermName, args: List[Tree]) = {
+        <span class="co">// Get the constructor arguments into a form we can deal with.</span>
+        <span class="kw">val</span> myArgs: List[(TermName, TypeName)] = args.<span class="fu">map</span> {
+          <span class="kw">case</span> <span class="fu">Typed</span>(<span class="fu">Ident</span>(name: TermName), <span class="fu">Ident</span>(typ: TypeName)) =&gt; (name, typ)
+          <span class="kw">case</span> other =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Unsupported constructor argument: $other&quot;</span>)
+        }
+        <span class="co">// Keep track of the types used by those arguments so we can determine</span>
+        <span class="co">// which ones are used for extending the trait.</span>
+        <span class="kw">val</span> myArgTypes: List[TypeName] = myArgs.<span class="fu">map</span>(_.<span class="fu">_2</span>)
+        <span class="co">// If this case class uses one of the trait's type parameters, have the</span>
+        <span class="co">// case class extend from the trait using that type parameter. Otherwise,</span>
+        <span class="co">// use Nothing in that type parameter's place.</span>
+        <span class="kw">val</span> parentTypeParams = typeParams.<span class="fu">map</span>(
+          p =&gt; <span class="kw">if</span> (myArgTypes.<span class="fu">contains</span>(p)) <span class="fu">Ident</span>(p) <span class="kw">else</span> <span class="fu">Ident</span>(<span class="fu">TypeName</span>(<span class="st">&quot;Nothing&quot;</span>))
+        )
+        <span class="co">// Construct the type parameters for this case class.</span>
+        <span class="kw">val</span> myTypeParams = myArgTypes.<span class="fu">map</span>(
+          p =&gt; <span class="fu">TypeDef</span>(<span class="fu">Modifiers</span>(Flag.<span class="fu">PARAM</span>), p, Nil, <span class="fu">TypeBoundsTree</span>(EmptyTree, EmptyTree))
+        )
+        <span class="co">// Construct the arguments for this case class.</span>
+        <span class="kw">val</span> myCtorArgs = myArgs.<span class="fu">map</span> { <span class="kw">case</span> (argName, argType) =&gt;
+          <span class="fu">ValDef</span>(
+            <span class="fu">Modifiers</span>(Flag.<span class="fu">CASEACCESSOR</span> | Flag.<span class="fu">PARAMACCESSOR</span>),
+            argName, <span class="fu">Ident</span>(argType), EmptyTree
+          )
+        }
+        q<span class="st">&quot;&quot;&quot;</span>
+            <span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> ${name.<span class="fu">toTypeName</span>}[..$myTypeParams](..$myCtorArgs)
+              <span class="kw">extends</span> $clsName[..$parentTypeParams]
+        <span class="st">&quot;&quot;&quot;</span>
+      }</code></pre></div>
+<p>Constructing an AST for a case object is pretty trivial -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">      <span class="kw">def</span> <span class="fu">mkCaseObject</span>(name: TermName) = {
+        <span class="kw">val</span> parentTypeParams = typeParams.<span class="fu">map</span>(_ =&gt; <span class="fu">Ident</span>(<span class="fu">TypeName</span>(<span class="st">&quot;Nothing&quot;</span>)))
+        q<span class="st">&quot;case object $name extends $clsName[..$parentTypeParams]&quot;</span>
+      }</code></pre></div>
+<p>Now we can just call the appropriate function to construct the right trees.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {
+        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; <span class="fu">mkCaseClass</span>(name, args)
+        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; <span class="fu">mkCaseObject</span>(name)
+      }
+
+      q<span class="st">&quot;&quot;&quot;</span>
+        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]
+        <span class="kw">object</span> ${clsName.<span class="fu">toTermName</span>} {
+          ..$ctors
+        }
+      <span class="st">&quot;&quot;&quot;</span>
+    }</code></pre></div>
+<p>Whew, alright, let’s run our test again.</p>
+<pre class="text"><code>&gt; test
+[info] + @ADT macro.generates Nix singleton: OK, proved property.
+[info] + @ADT macro.generates Just constructor: OK, proved property.
+[info] Passed: Total 2, Failed 0, Errors 0, Passed 2
+[success]
+&gt; </code></pre>
+<h2 id="congratulations">Congratulations!</h2>
+<p>We now have a working macro. However, this code is certainly not perfect. What if you define methods in the trait? What if you define your own companion object? Feel free to try these out yourself and see what happens. Spoiler, it won’t work as you’d want. I’d recommend digging into the <a href="https://github.com/carymrobbins/scala-adt">scala-adt</a> source code to see how this is handled as well as some other features like ADT enums.</p>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2017
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
