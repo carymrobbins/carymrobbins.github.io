@@ -48,7 +48,7 @@ the last argument to see its value. The `remote.origin.fetch` seemed to already 
 properly, so I just set the last two. However, here are all three for reference -
 
 ```
-git config remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 git config branch.master.remote origin
 git config branch.master.merge refs/heads/master
 ```
