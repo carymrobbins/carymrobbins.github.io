@@ -1,4 +1,93 @@
-# Publishing with SBT
+# Publishing to Maven Central with SBT
+
+Getting your first library published to Maven Central can be a intimidating
+at first, but you've got it working once, especially for a particular Group Id,
+successive deploys are much simpler.
+
+## Setting up SBT
+
+The following SBT plugins will be used in this guide.  Add these
+to your **project/plugins.sbt** file.
+
+```scala
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.1")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.4")
+addSbtPlugin("com.dwijnand" % "sbt-travisci" % "1.1.0")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "1.1")
+```
+
+As always, you probably want to update the versions listed above to match
+the latest releases.
+
+Next, update your project's **build.sbt** file to match something like the following -
+
+```scala
+// This must be a domain that you own!
+organization in ThisBuild := "com.example"
+
+name := "example-library"
+
+homepage := Some(url("https://github.com/example/example-library"))
+licenses := Seq("Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+publishMavenStyle := true
+publishArtifact in Test := false
+pomIncludeRepository := { _ => false }
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/example/example-library"),
+    "scm:git:git@github.com:example/example-library.git"
+  )
+)
+developers := List(
+  Developer("john", "John Doe", "john@example.com", url("http://john.example.com"))
+)
+
+credentials ++= (
+  for {
+    username <- Option(System.getenv().get("SONATYPE_USERNAME"))
+    password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
+  } yield Credentials(
+    "Sonatype Nexus Repository Manager",
+    "oss.sonatype.org",
+    username,
+    password
+  )
+).toSeq
+```
+
+## Creating a Sonatype account
+
+First, you'll need to have a Sonatype account.
+Go to the [Sonatype JIRA site](https://issues.sonatype.org) and create an
+account. Once done, submit a new issue to have your account activated
+and for access to deploy your new project.
+
+The **Group Id** you choose must be a domain which you own (e.g. if you own `example.com`
+your Group Id will be `com.example`).  Alternatively, you can follow
+[this guide](http://central.sonatype.org/pages/choosing-your-coordinates.html)
+on picking an appropriate Group Id.
+
+Once your ticket has been submitted an administrator will then comment on the issue letting
+you know if anything else is needed. Otherwise, you will be notified of configuration
+completion and be given the set of links to the repositories you will have access to
+deploy to. You will then be asked to do your first release. Follow the steps below
+for how to do this.
+
+## SBT-PGP
+
+Now it's time to use the `sbt-pgp` plugin we added before.  If you have trouble,
+be sure to check out its official documentation [here](http://www.scala-sbt.org/sbt-pgp/).
+
+
+First off, you'll probably need to generate a new PGP key for use with SBT.
+The easiest way to do this is to launch the `sbt` shell and run the `pgp-cmd gen-key` command.
 
 ```
 > pgp-cmd gen-key
