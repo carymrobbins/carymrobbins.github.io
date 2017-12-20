@@ -5,11 +5,11 @@ cabal-version:      >= 1.10
 
 executable site
   main-is:          site.hs
-  build-depends:    base == 4.*
-                  , directory == 1.2.*
-                  , filepath == 1.4.*
-                  , hakyll == 4.7.*
-                  , hakyll-sass == 0.2.*
-                  , regex-compat == 0.95.*
+  build-depends:    base
+                  , directory
+                  , filepath
+                  , hakyll
+                  , hakyll-sass
+                  , regex-compat
   ghc-options:      -threaded
   default-language: Haskell2010
