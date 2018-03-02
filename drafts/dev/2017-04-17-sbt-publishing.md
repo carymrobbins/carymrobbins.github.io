@@ -272,3 +272,11 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 ```
+
+### Releasing manually
+
+Be sure to include the leading `+` for cross builds.
+
+`% sbt +publishSigned`
+Confirm that everything looks right on https://oss.sonatype.org
+`% sbt +sonatypeReleaseAll`
