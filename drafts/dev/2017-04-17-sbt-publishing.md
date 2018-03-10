@@ -1,8 +1,27 @@
 # Publishing to Maven Central with SBT
 
 Getting your first library published to Maven Central can be a intimidating
-at first, but you've got it working once, especially for a particular Group Id,
+at first, but once you've got it working the first time,
+especially for a particular Group Id,
 successive deploys are much simpler.
+
+## Creating a Sonatype account
+
+First, you'll need to have a Sonatype account.
+Go to the [Sonatype JIRA site](https://issues.sonatype.org) and create an
+account. Once done, submit a new issue to have your account activated
+and for access to deploy your new project.
+
+The **Group Id** you choose must be a domain which you own (e.g. if you own `example.com`
+your Group Id will be `com.example`).  Alternatively, you can follow
+[this guide](http://central.sonatype.org/pages/choosing-your-coordinates.html)
+on picking an appropriate Group Id.
+
+Once your ticket has been submitted an administrator will then comment on the issue letting
+you know if anything else is needed. Otherwise, you will be notified of configuration
+completion and be given the set of links to the repositories you will have access to
+deploy to. You will then be asked to do your first release. Follow the steps below
+for how to do this.
 
 ## Setting up SBT
 
@@ -48,43 +67,79 @@ scmInfo := Some(
 developers := List(
   Developer("john", "John Doe", "john@example.com", url("http://john.example.com"))
 )
-
-credentials ++= (
-  for {
-    username <- Option(System.getenv().get("SONATYPE_USERNAME"))
-    password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
-  } yield Credentials(
-    "Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
-    username,
-    password
-  )
-).toSeq
 ```
 
-## Creating a Sonatype account
+Be sure to update the URLs, license, developers, etc. to match your library.
 
-First, you'll need to have a Sonatype account.
-Go to the [Sonatype JIRA site](https://issues.sonatype.org) and create an
-account. Once done, submit a new issue to have your account activated
-and for access to deploy your new project.
+Finally, create `version.sbt` file in the root of your project with the following content -
 
-The **Group Id** you choose must be a domain which you own (e.g. if you own `example.com`
-your Group Id will be `com.example`).  Alternatively, you can follow
-[this guide](http://central.sonatype.org/pages/choosing-your-coordinates.html)
-on picking an appropriate Group Id.
+```sbt
+version in ThisBuild := "0.0.1-SNAPSHOT"
+```
 
-Once your ticket has been submitted an administrator will then comment on the issue letting
-you know if anything else is needed. Otherwise, you will be notified of configuration
-completion and be given the set of links to the repositories you will have access to
-deploy to. You will then be asked to do your first release. Follow the steps below
-for how to do this.
+I recommend always suffixing with `-SNAPSHOT`. When the release is ready we'll remove
+the snapshot suffix, release as `0.0.1`, and then bump to the next snapshot version
+`0.0.2-SNAPSHOT`.
+
+## Travis
+
+The travis plugin we added to `plugins.sbt` not only helps configuring a
+[Travis CI](https://travis-ci.org/) build, it also simplifies setting up cross-Scala
+builds (libraries which support multiple Scala versions). Here's an example `.travis.yml`
+file for cross building -
+
+```yaml
+language: scala
+
+scala:
+  - 2.10.7
+  - 2.11.12
+  - 2.12.4
+
+jdk:
+  - oraclejdk8
+
+branches:
+  only:
+    - master
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot
+    - $HOME/.coursier
+```
+
+A couple things to note about this configuration -
+* The last Scala version, 2.12.4, will be used as the default for SBT commands. To run commands
+  against all configured Scala versions, prefix your commands with `+`, e.g. `+test`. If you're
+  unfamiliar with this, be sure to check out the
+  [SBT Cross Building documentation](https://www.scala-sbt.org/1.0/docs/Cross-Build.html).
+* The `jdk` setting is pretty self-explanatory, I'm sure you'll figure it out.
+* We are setting `branches.only` to `master` so Travis will only auto-build `master` and
+  pull requests; otherwise, branches associated with pull requests will be built twice.
+  See the [Travis Pull Request documentation](https://docs.travis-ci.com/user/pull-requests/#%E2%80%98Double-builds%E2%80%99-on-pull-requests)
+  for more info.
+* The `cache` configuration just allows Travis to reuse existing files, speeding up build times.
+
+Next we'll need to configure our Sonatype credentials by creating a `sonatype.sbt`
+file in our SBT configuration directory. For example, I'm using `~/.sbt/0.13/sonatype.sbt`
+but that may be different for a different version of SBT. Be sure to **NOT** put your Sonatype
+credentials in your library!
+
+```sbt
+credentials += Credentials(
+  "Sonatype Nexus Repository Manager",
+  "oss.sonatype.org",
+  "myusername",
+  "mypassword"
+)
+```
 
 ## SBT-PGP
 
 Now it's time to use the `sbt-pgp` plugin we added before.  If you have trouble,
 be sure to check out its official documentation [here](http://www.scala-sbt.org/sbt-pgp/).
-
 
 First off, you'll probably need to generate a new PGP key for use with SBT.
 The easiest way to do this is to launch the `sbt` shell and run the `pgp-cmd gen-key` command.
@@ -114,149 +169,27 @@ Please re-enter the passphrase for the key: ********************************
 ...
 ```
 
-Seems I can't publish without credentials, so I'll need a Sonatype account.
-
-Wait...in order to do that I need to submit a JIRA issue; however, I don't have an
-account for Sonatype JIRA, so I'll need to get one of those.
-
-Ok, got it, now open an issue on JIRA to get a new account (and possibly create the
-new project).
-
-https://issues.sonatype.org/browse/OSSRH-30654
-
----------------------------
-
-Once all that was done, and I got build.sbt configured correctly, running `release` from
-sbt didn't quite work just yet.
-
-> No tracking branch is set up. Either configure a remote tracking branch, or remove the pushChanges release part.
-
-This [issue](https://github.com/sbt/sbt-release/issues/100) seems to suggest that
-we can configure this with git directly. First, I checked the output of each command without
-the last argument to see its value. The `remote.origin.fetch` seemed to already be set
-properly, so I just set the last two. However, here are all three for reference -
+We now need to upload our public key to one of the key servers. Use
+`pgp-cmd list-keys` to get the id for your key, then use `pgp-cmd send-key`
+to upload it.
 
 ```
-git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-git config branch.master.remote origin
-git config branch.master.merge refs/heads/master
+> pgp-cmd list-keys
+/home/me/.sbt/gpg/pubring.asc
+-----------------------------------
+pub     RSA@2048/abcdef12       2017-08-20
+uid                             John Doe <john@example.com>
+
+> pgp-cmd send-key abcdef12 hkp://pool.sks-keyservers.net
 ```
 
-Let's try running `release` again...
+## Releasing
 
-```
-> release
-[info] Starting release process off commit: be71b18e16fb0bd8738eb1d9aba26665be17c256
-[info] Checking remote [origin] ...
-Release version [0.0.1] :
-Next version [0.0.2-SNAPSHOT] :
-```
-
-Hey! Look at that, it worked! And to boot, it also inferred the appropriate version bumps.
-
-It then proceeded to run my tests, publish to the release repository, then prompt
-me to push the changes -
-
-```
-Push changes to the remote repository (y/n)? [y]
-[info] To github.com:estatico/confide.git
-[info]    be71b18..c352b18  master -> master
-[info] To github.com:estatico/confide.git
-[info]  * [new tag]         v0.0.1 -> v0.0.1
-```
-
-Sweet!
-
-----------------------------------------
-
-So I needed to then go to oss.sonatype.org and in the UI _close_ and _release_ my
-staging repository.
-
-So close, but seems I dind't upload my public key to one of the servers! Let me
-try that...
-
-```
-> pgp-cmd send-key 0dd68733 hkp://pool.sks-keyservers.net
-```
-
-I could just try to re-close and release it directly on Sonatype, but let me see
-if I can automate the process from SBT.
-
-Ok now I need to log into Sonatype and drop my staging repository and re-publish it.
-
-```
-> +publishSigned
-```
-
-Ok, now let's add the sonatype plugin to our `project/plugins.sbt` file.
-
-```
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "1.1")
-```
-
-Credentials **have** to go in ~/.sbt/0.13/sonatype.sbt, don't put it in plugins/, won't work!
-
-Then all is well -
-
-```
-> sonatypeReleaseAll io.estatico
-[info] Nexus repository URL: https://oss.sonatype.org/service/local
-[info] sonatypeProfileName = io.estatico
-[info] Reading staging repository profiles...
-[info] Reading staging profiles...
-[info] Closing staging repository [ioestatico-1001] status:open, profile:io.estatico(5cb4e883b06886) description: Implicitly created (auto staging).
-[info] Activity open started:2017-04-21T23:24:07.497Z, stopped:2017-04-21T23:24:11.712Z
-[info] repositoryCreated: id:ioestatico-1001, user:cary, ip:70.158.101.154
-[info] Activity close started:2017-04-24T02:32:59.546Z, stopped:
-[info]   Evaluate: id:5e9e8e6f8d20a3, rule:sources-staging
-[info]   Evaluate: javadoc-staging
-[info]     Passed: javadoc-staging
-[info]   Evaluate: pom-staging
-[info]     Passed: pom-staging
-[info]   Evaluate: signature-staging
-[info]     Passed: signature-staging
-[info]   Evaluate: sources-staging
-[info]     Passed: sources-staging
-[info]   Evaluate: checksum-staging
-[info]     Passed: checksum-staging
-[info]     Passed: id:5e9e8e6f8d20a3
-[info]      email: to:cary@example.com
-[info] repositoryClosed: id:ioestatico-1001
-[info] Closed successfully
-[info] Promoting staging repository [ioestatico-1001] status:closed, profile:io.estatico(5cb4e883b06886) description: Implicitly created (auto staging).
-[info] Activity release started:2017-04-24T02:33:21.175Z, stopped:
-[info]   Evaluate: id:5e9e8e6f8d20a3, rule:sources-staging
-[info]   Evaluate: javadoc-staging
-[info]     Passed: javadoc-staging
-[info]   Evaluate: pom-staging
-[info]     Passed: pom-staging
-[info]   Evaluate: signature-staging
-[info]     Passed: signature-staging
-[info]   Evaluate: sources-staging
-[info]     Passed: sources-staging
-[info]   Evaluate: checksum-staging
-[info]     Passed: checksum-staging
-[info]     Passed: id:5e9e8e6f8d20a3
-[info]   Evaluate: id:nx-internal-ruleset, rule:RepositoryWritePolicy
-[info]   Evaluate: RepositoryWritePolicy
-[info]     Passed: RepositoryWritePolicy
-[info]     Passed: id:nx-internal-ruleset
-[info]  copyItems: source:ioestatico-1001, target:releases
-[info]      email: to:cary@example.com
-[info] repositoryReleased: id:ioestatico-1001, target:releases
-[info] Promoted successfully
-[info] Dropping staging repository [ioestatico-1001] status:released, profile:io.estatico(5cb4e883b06886) description: Implicitly created (auto staging).
-[info] Dropped successfully: ioestatico-1001
-```
-
-Ok, better yet, we can try to update the `releaseProcess` so that the SBT `release` command
-will just do it all -
+The `sbt-release` plugin comes with a `release` command. You can configure
+the steps with the `releaseProcess` setting in your `build.sbt`. Here's
+an example -
 
 ```sbt
-import ReleaseTransformations._
-
-// ...
-
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
@@ -273,10 +206,85 @@ releaseProcess := Seq[ReleaseStep](
 )
 ```
 
-### Releasing manually
+However, I recommend going through the release
+manually to understand the steps and to ensure everything works properly before
+using the `release` command. We don't want to accidentally release a broken library!
 
-Be sure to include the leading `+` for cross builds.
+The first time I went through this, I didn't, and `release` gave me the following
+error -
 
-`% sbt +publishSigned`
-Confirm that everything looks right on https://oss.sonatype.org
-`% sbt +sonatypeReleaseAll`
+> No tracking branch is set up. Either configure a remote tracking branch, or remove the pushChanges release part.
+
+This [issue](https://github.com/sbt/sbt-release/issues/100) seems to suggest that
+we can configure this with git directly. First, I checked the output of each command without
+the last argument to see its value. The `remote.origin.fetch` seemed to already be set
+properly, so I just set the last two. However, here are all three for reference -
+
+```
+git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git config branch.master.remote origin
+git config branch.master.merge refs/heads/master
+```
+
+Let's walk through this manually without the `release` command.
+
+1. Run `sbt +clean +test` because we're good programmers.
+
+2. Bump the version in `version.sbt` to a release version, `0.0.1`, removing the
+   `-SNAPSHOT` suffix. We should end up with something like -
+
+  ```sbt
+  version in ThisBuild := "0.0.1"
+  ```
+
+  I recommend bumping your version bumps in their own commit then tagging accordingly -
+
+  ```
+  % git commit version.sbt -m "Setting version to 0.0.1"
+  ```
+
+  We'll wait to push and tag until we've confirmed our release has been deployed successfully.
+  Before going further, we should confirm we don't have any uncommitted files.
+
+  ```
+  % git status
+  On branch master
+  Your branch is up to date with 'origin/master'.
+
+  nothing to commit, working tree clean
+  ```
+
+3. Publish the library to our Sonatype Staging Repository.
+
+  ```
+  % sbt +publishSigned
+  ```
+
+  This will ask you for your PGP passphrase and publish each of your builds.
+
+4. Navigate to the [Nexus Repository Manager](https://oss.sonatype.org), login, and check on the
+   status of your library by checking your **Staging Repository** (link in the left pane).
+
+   <img src="/images/sbt-publishing/nexus-left-pane.png" />
+
+   Scroll through the list of repositories (all named `central_bundles` for some reason).
+   Find the one matching your Group Id. Select it and choose the **Content** tab. Confirm
+   that you have entries and files for each of your published libraries.
+
+   <img src="/images/sbt-publishing/staging-repositories.png" />
+
+5. You can now use `sbt sonatypeReleaseAll` to close and promote all staging repositories.
+   You can also use the **Close** button on the top menu in Nexus to do this manually.
+
+6. Confirm that your Staging Repository no longer exists and that it now can be found
+   under **Repositories** (left pane) and the **Releases** repository.
+
+   <img src="/images/sbt-publishing/releases-repository.png" />
+
+At this point, it may take a few hours or so for the central repositories to sync your
+release. You can try to add the following temporarily to your `build.sbt` if you aren't
+able to resolve the updated dependency -
+
+```sbt
+resolvers += Resolver.sonatypeRepo("public")
+```
