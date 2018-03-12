@@ -1,4 +1,6 @@
-# Publishing to Maven Central with SBT
+---
+title: Publishing to Maven Central with SBT
+---
 
 Getting your first library published to Maven Central can be a intimidating
 at first, but once you've got it working the first time,
@@ -183,7 +185,7 @@ uid                             John Doe <john@example.com>
 > pgp-cmd send-key abcdef12 hkp://pool.sks-keyservers.net
 ```
 
-## Releasing
+## Configuring the Release Command
 
 The `sbt-release` plugin comes with a `release` command. You can configure
 the steps with the `releaseProcess` setting in your `build.sbt`. Here's
@@ -213,7 +215,9 @@ using the `release` command. We don't want to accidentally release a broken libr
 The first time I went through this, I didn't, and `release` gave me the following
 error -
 
-> No tracking branch is set up. Either configure a remote tracking branch, or remove the pushChanges release part.
+```
+No tracking branch is set up. Either configure a remote tracking branch, or remove the pushChanges release part.
+```
 
 This [issue](https://github.com/sbt/sbt-release/issues/100) seems to suggest that
 we can configure this with git directly. First, I checked the output of each command without
@@ -226,52 +230,63 @@ git config branch.master.remote origin
 git config branch.master.merge refs/heads/master
 ```
 
-Let's walk through this manually without the `release` command.
+## Manual Release
+
+Let's walk through this manually without the `release` command. Note that if you publish
+a version with a `-SNAPSHOT` suffix, it will be published to the Sonatype Snapshots Repository;
+otherwise it will be deployed to the Sonatype Releases Repository. This is because we set the
+`publishTo` setting in our `build.sbt` to be determine the repository from the version number.
+
+If this is your first time doing a release, I _strongly_ recommend doing a snapshot release
+first, just to make sure you get a feel for things. You can even try out the snapshot release
+in your project to ensure your "production" release will behave as expected.
+
+Ok, on with performing a manual release.
 
 1. Run `sbt +clean +test` because we're good programmers.
 
 2. Bump the version in `version.sbt` to a release version, `0.0.1`, removing the
    `-SNAPSHOT` suffix. We should end up with something like -
 
-  ```sbt
-  version in ThisBuild := "0.0.1"
-  ```
+```sbt
+version in ThisBuild := "0.0.1"
+```
 
   I recommend bumping your version bumps in their own commit then tagging accordingly -
 
-  ```
-  % git commit version.sbt -m "Setting version to 0.0.1"
-  ```
+```
+% git commit version.sbt -m "Setting version to 0.0.1"
+```
 
   We'll wait to push and tag until we've confirmed our release has been deployed successfully.
   Before going further, we should confirm we don't have any uncommitted files.
 
-  ```
-  % git status
-  On branch master
-  Your branch is up to date with 'origin/master'.
+```
+% git status
+On branch master
+Your branch is up to date with 'origin/master'.
 
-  nothing to commit, working tree clean
-  ```
+nothing to commit, working tree clean
+```
 
 3. Publish the library to our Sonatype Staging Repository.
 
-  ```
-  % sbt +publishSigned
-  ```
+```
+% sbt +publishSigned
+```
 
   This will ask you for your PGP passphrase and publish each of your builds.
 
 4. Navigate to the [Nexus Repository Manager](https://oss.sonatype.org), login, and check on the
    status of your library by checking your **Staging Repository** (link in the left pane).
 
-   <img src="/images/sbt-publishing/nexus-left-pane.png" />
+   <img src="/images/sbt-publishing-nexus-left-pane.png" />
 
    Scroll through the list of repositories (all named `central_bundles` for some reason).
    Find the one matching your Group Id. Select it and choose the **Content** tab. Confirm
    that you have entries and files for each of your published libraries.
 
-   <img src="/images/sbt-publishing/staging-repositories.png" />
+   <img src="/images/sbt-publishing-staging-repositories.png" />
 
 5. You can now use `sbt sonatypeReleaseAll` to close and promote all staging repositories.
    You can also use the **Close** button on the top menu in Nexus to do this manually.
@@ -279,7 +294,7 @@ Let's walk through this manually without the `release` command.
 6. Confirm that your Staging Repository no longer exists and that it now can be found
    under **Repositories** (left pane) and the **Releases** repository.
 
-   <img src="/images/sbt-publishing/releases-repository.png" />
+   <img src="/images/sbt-publishing-releases-repository.png" />
 
 At this point, it may take a few hours or so for the central repositories to sync your
 release. You can try to add the following temporarily to your `build.sbt` if you aren't
@@ -288,3 +303,72 @@ able to resolve the updated dependency -
 ```sbt
 resolvers += Resolver.sonatypeRepo("public")
 ```
+
+## Using the Release Command
+
+At this point you should be able to use the `sbt release` command; however, as of late
+I've been preferring doing it manually. Feel free to experiment with it, but be cautious
+and make sure that everything gets released as intended just as you would with the manual
+steps.
+
+Here we go!
+
+```
+% sbt release
+```
+
+First we'll be prompted for our release version and next snapshot version. The release plugin
+does a good job of inferring the next release and snapshot bump. For example,
+if `version.sbt` contains `0.0.1-SNAPSHOT`, it will suggest `0.0.1` for release and
+`0.0.2-SNAPSHOT` for the next snapshot. Pretty nice! Of course, we have the option
+to provide different version numbers, but it's still very convenient.
+
+```
+...
+[info] Starting release process off commit: 2f4d502524237e7555516cecfaa002313f5e1cbd
+[info] Checking remote [origin] ...
+...
+Release version [0.0.1] :
+Next version [0.0.2-SNAPSHOT] :
+[success] Total time: 0 s, completed Mar 9, 2018 10:38:57 PM
+
+[info] Setting scala version to 2.11.8
+...
+[info] ScalaTest
+...
+[info] Passed: Total 3, Failed 0, Errors 0, Passed 3
+[success] Total time: 8 s, completed Mar 9, 2018 10:39:05 PM
+
+[info] Setting scala version to 2.12.1
+...
+[info] ScalaTest
+...
+[info] Passed: Total 3, Failed 0, Errors 0, Passed 3
+[success] Total time: 10 s, completed Mar 9, 2018 10:39:15 PM
+
+[info] Setting scala version to 2.11.8
+...
+Please enter PGP passphrase (or ENTER to abort): *********
+[info]  published example_2.11 to https://oss.sonatype.org/content/repositories/snapshots/com/example/example_2.11/0.0.1/example_2.11-0.0.1.pom.asc
+...
+[success] Total time: 18 s, completed Mar 9, 2018 10:39:34 PM
+
+[info] Setting scala version to 2.12.1
+...
+[info]  published example_2.12 to https://oss.sonatype.org/content/repositories/snapshots/com/example/example_2.12/0.0.1/example_2.12-0.0.1.pom
+...
+[success] Total time: 17 s, completed Mar 9, 2018 10:39:51 PM
+
+[info] Setting version to '0.0.2-SNAPSHOT'.
+[info] Reapplying settings...
+...
+[info] [master 779c5d2] Setting version to 0.0.2-SNAPSHOT
+[info]  1 file changed, 1 insertion(+), 1 deletion(-)
+
+...
+Push changes to the remote repository (y/n)? [y]
+```
+
+I'll mention again that while using the `release` command is _really_ convenient,
+I would, at this time, recommend going through the steps manually to make sure everything
+goes smoothly.
