@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Publishing to Maven Central with SBT</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Publishing to Maven Central with SBT</h1>
+    </div>
+    <div class="col-md-12">
+      <small>March 12, 2018</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>Getting your first library published to Maven Central can be a intimidating at first, but once you’ve got it working the first time, especially for a particular Group Id, successive deploys are much simpler.</p>
+<h2 id="creating-a-sonatype-account">Creating a Sonatype account</h2>
+<p>First, you’ll need to have a Sonatype account. Go to the <a href="https://issues.sonatype.org">Sonatype JIRA site</a> and create an account. Once done, submit a new issue to have your account activated and for access to deploy your new project.</p>
+<p>The <strong>Group Id</strong> you choose must be a domain which you own (e.g. if you own <code>example.com</code> your Group Id will be <code>com.example</code>). Alternatively, you can follow <a href="http://central.sonatype.org/pages/choosing-your-coordinates.html">this guide</a> on picking an appropriate Group Id.</p>
+<p>Once your ticket has been submitted an administrator will then comment on the issue letting you know if anything else is needed. Otherwise, you will be notified of configuration completion and be given the set of links to the repositories you will have access to deploy to. You will then be asked to do your first release. Follow the steps below for how to do this.</p>
+<h2 id="setting-up-sbt">Setting up SBT</h2>
+<p>The following SBT plugins will be used in this guide. Add these to your <strong>project/plugins.sbt</strong> file.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="fu">addSbtPlugin</span>(<span class="st">&quot;com.jsuereth&quot;</span> % <span class="st">&quot;sbt-pgp&quot;</span> % <span class="st">&quot;1.0.1&quot;</span>)
+<span class="fu">addSbtPlugin</span>(<span class="st">&quot;com.github.gseitz&quot;</span> % <span class="st">&quot;sbt-release&quot;</span> % <span class="st">&quot;1.0.4&quot;</span>)
+<span class="fu">addSbtPlugin</span>(<span class="st">&quot;com.dwijnand&quot;</span> % <span class="st">&quot;sbt-travisci&quot;</span> % <span class="st">&quot;1.1.0&quot;</span>)
+<span class="fu">addSbtPlugin</span>(<span class="st">&quot;org.xerial.sbt&quot;</span> % <span class="st">&quot;sbt-sonatype&quot;</span> % <span class="st">&quot;1.1&quot;</span>)</code></pre></div>
+<p>As always, you probably want to update the versions listed above to match the latest releases.</p>
+<p>Next, update your project’s <strong>build.sbt</strong> file to match something like the following -</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="co">// This must be a domain that you own!</span>
+organization in ThisBuild := <span class="st">&quot;com.example&quot;</span>
+
+name := <span class="st">&quot;example-library&quot;</span>
+
+homepage := Some(<span class="fu">url</span>(<span class="st">&quot;https://github.com/example/example-library&quot;</span>))
+licenses := Seq(<span class="st">&quot;Apache 2.0&quot;</span> -&gt; <span class="fu">url</span>(<span class="st">&quot;http://www.apache.org/licenses/LICENSE-2.0&quot;</span>))
+publishMavenStyle := <span class="kw">true</span>
+publishArtifact in Test := <span class="kw">false</span>
+pomIncludeRepository := { _ =&gt; <span class="kw">false</span> }
+publishTo := {
+  <span class="kw">val</span> nexus = <span class="st">&quot;https://oss.sonatype.org/&quot;</span>
+  <span class="kw">if</span> (isSnapshot.<span class="fu">value</span>)
+    Some(<span class="st">&quot;snapshots&quot;</span> at nexus + <span class="st">&quot;content/repositories/snapshots&quot;</span>)
+  <span class="kw">else</span>
+    Some(<span class="st">&quot;releases&quot;</span>  at nexus + <span class="st">&quot;service/local/staging/deploy/maven2&quot;</span>)
+}
+scmInfo := Some(
+  <span class="fu">ScmInfo</span>(
+    <span class="fu">url</span>(<span class="st">&quot;https://github.com/example/example-library&quot;</span>),
+    <span class="st">&quot;scm:git:git@github.com:example/example-library.git&quot;</span>
+  )
+)
+developers := List(
+  <span class="fu">Developer</span>(<span class="st">&quot;john&quot;</span>, <span class="st">&quot;John Doe&quot;</span>, <span class="st">&quot;john@example.com&quot;</span>, <span class="fu">url</span>(<span class="st">&quot;http://john.example.com&quot;</span>))
+)</code></pre></div>
+<p>Be sure to update the URLs, license, developers, etc. to match your library.</p>
+<p>Finally, create <code>version.sbt</code> file in the root of your project with the following content -</p>
+<pre class="sbt"><code>version in ThisBuild := &quot;0.0.1-SNAPSHOT&quot;</code></pre>
+<p>I recommend always suffixing with <code>-SNAPSHOT</code>. When the release is ready we’ll remove the snapshot suffix, release as <code>0.0.1</code>, and then bump to the next snapshot version <code>0.0.2-SNAPSHOT</code>.</p>
+<h2 id="travis">Travis</h2>
+<p>The travis plugin we added to <code>plugins.sbt</code> not only helps configuring a <a href="https://travis-ci.org/">Travis CI</a> build, it also simplifies setting up cross-Scala builds (libraries which support multiple Scala versions). Here’s an example <code>.travis.yml</code> file for cross building -</p>
+<div class="sourceCode"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span class="fu">language:</span> scala
+
+<span class="fu">scala:</span>
+  <span class="kw">-</span> 2.10.7
+  <span class="kw">-</span> 2.11.12
+  <span class="kw">-</span> 2.12.4
+
+<span class="fu">jdk:</span>
+  <span class="kw">-</span> oraclejdk8
+
+<span class="fu">branches:</span>
+  <span class="fu">only:</span>
+    <span class="kw">-</span> master
+
+<span class="fu">cache:</span>
+  <span class="fu">directories:</span>
+    <span class="kw">-</span> $HOME/.ivy2/cache
+    <span class="kw">-</span> $HOME/.sbt/boot
+    <span class="kw">-</span> $HOME/.coursier</code></pre></div>
+<p>A couple things to note about this configuration - * The last Scala version, 2.12.4, will be used as the default for SBT commands. To run commands against all configured Scala versions, prefix your commands with <code>+</code>, e.g. <code>+test</code>. If you’re unfamiliar with this, be sure to check out the <a href="https://www.scala-sbt.org/1.0/docs/Cross-Build.html">SBT Cross Building documentation</a>. * The <code>jdk</code> setting is pretty self-explanatory, I’m sure you’ll figure it out. * We are setting <code>branches.only</code> to <code>master</code> so Travis will only auto-build <code>master</code> and pull requests; otherwise, branches associated with pull requests will be built twice. See the <a href="https://docs.travis-ci.com/user/pull-requests/#%E2%80%98Double-builds%E2%80%99-on-pull-requests">Travis Pull Request documentation</a> for more info. * The <code>cache</code> configuration just allows Travis to reuse existing files, speeding up build times.</p>
+<p>Next we’ll need to configure our Sonatype credentials by creating a <code>sonatype.sbt</code> file in our SBT configuration directory. For example, I’m using <code>~/.sbt/0.13/sonatype.sbt</code> but that may be different for a different version of SBT. Be sure to <strong>NOT</strong> put your Sonatype credentials in your library!</p>
+<pre class="sbt"><code>credentials += Credentials(
+  &quot;Sonatype Nexus Repository Manager&quot;,
+  &quot;oss.sonatype.org&quot;,
+  &quot;myusername&quot;,
+  &quot;mypassword&quot;
+)</code></pre>
+<h2 id="sbt-pgp">SBT-PGP</h2>
+<p>Now it’s time to use the <code>sbt-pgp</code> plugin we added before. If you have trouble, be sure to check out its official documentation <a href="http://www.scala-sbt.org/sbt-pgp/">here</a>.</p>
+<p>First off, you’ll probably need to generate a new PGP key for use with SBT. The easiest way to do this is to launch the <code>sbt</code> shell and run the <code>pgp-cmd gen-key</code> command.</p>
+<pre><code>&gt; pgp-cmd gen-key
+java.lang.RuntimeException: Cannot modify keyrings when in read-only mode.  Run `set pgpReadOnly := false` before running this command.</code></pre>
+<p>Oh, better do what the man says.</p>
+<pre><code>&gt; set pgpReadOnly := false
+...
+
+&gt; pgp-cmd gen-key
+Please enter the name associated with the key: Cary Robbins
+Please enter the email associated with the key: cary@example.com
+Please enter the passphrase for the key: ********************************
+Please re-enter the passphrase for the key: ********************************
+[info] Creating a new PGP key, this could take a long time.
+[info] Public key := /home/user/.sbt/gpg/pubring.asc
+[info] Secret key := /home/user/.sbt/gpg/secring.asc
+[info] Please do not share your secret key.   Your public key is free to share.
+
+&gt; set pgpReadOnly := true
+...</code></pre>
+<p>We now need to upload our public key to one of the key servers. Use <code>pgp-cmd list-keys</code> to get the id for your key, then use <code>pgp-cmd send-key</code> to upload it.</p>
+<pre><code>&gt; pgp-cmd list-keys
+/home/me/.sbt/gpg/pubring.asc
+-----------------------------------
+pub     RSA@2048/abcdef12       2017-08-20
+uid                             John Doe &lt;john@example.com&gt;
+
+&gt; pgp-cmd send-key abcdef12 hkp://pool.sks-keyservers.net</code></pre>
+<h2 id="configuring-the-release-command">Configuring the Release Command</h2>
+<p>The <code>sbt-release</code> plugin comes with a <code>release</code> command. You can configure the steps with the <code>releaseProcess</code> setting in your <code>build.sbt</code>. Here’s an example -</p>
+<pre class="sbt"><code>releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean,
+  runTest,
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  publishArtifacts,
+  setNextVersion,
+  commitNextVersion,
+  ReleaseStep(action = Command.process(&quot;sonatypeReleaseAll&quot;, _)),
+  pushChanges
+)</code></pre>
+<p>However, I recommend going through the release manually to understand the steps and to ensure everything works properly before using the <code>release</code> command. We don’t want to accidentally release a broken library!</p>
+<p>The first time I went through this, I didn’t, and <code>release</code> gave me the following error -</p>
+<pre><code>No tracking branch is set up. Either configure a remote tracking branch, or remove the pushChanges release part.</code></pre>
+<p>This <a href="https://github.com/sbt/sbt-release/issues/100">issue</a> seems to suggest that we can configure this with git directly. First, I checked the output of each command without the last argument to see its value. The <code>remote.origin.fetch</code> seemed to already be set properly, so I just set the last two. However, here are all three for reference -</p>
+<pre><code>git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git config branch.master.remote origin
+git config branch.master.merge refs/heads/master</code></pre>
+<h2 id="manual-release">Manual Release</h2>
+<p>Let’s walk through this manually without the <code>release</code> command. Note that if you publish a version with a <code>-SNAPSHOT</code> suffix, it will be published to the Sonatype Snapshots Repository; otherwise it will be deployed to the Sonatype Releases Repository. This is because we set the <code>publishTo</code> setting in our <code>build.sbt</code> to be determine the repository from the version number.</p>
+<p>If this is your first time doing a release, I <em>strongly</em> recommend doing a snapshot release first, just to make sure you get a feel for things. You can even try out the snapshot release in your project to ensure your “production” release will behave as expected.</p>
+<p>Ok, on with performing a manual release.</p>
+<ol style="list-style-type: decimal">
+<li><p>Run <code>sbt +clean +test</code> because we’re good programmers.</p></li>
+<li><p>Bump the version in <code>version.sbt</code> to a release version, <code>0.0.1</code>, removing the <code>-SNAPSHOT</code> suffix. We should end up with something like -</p></li>
+</ol>
+<pre class="sbt"><code>version in ThisBuild := &quot;0.0.1&quot;</code></pre>
+<p>I recommend bumping your version bumps in their own commit then tagging accordingly -</p>
+<pre><code>% git commit version.sbt -m &quot;Setting version to 0.0.1&quot;</code></pre>
+<p>We’ll wait to push and tag until we’ve confirmed our release has been deployed successfully. Before going further, we should confirm we don’t have any uncommitted files.</p>
+<pre><code>% git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>Publish the library to our Sonatype Staging Repository.</li>
+</ol>
+<pre><code>% sbt +publishSigned</code></pre>
+<p>This will ask you for your PGP passphrase and publish each of your builds.</p>
+<ol start="4" style="list-style-type: decimal">
+<li>Navigate to the <a href="https://oss.sonatype.org">Nexus Repository Manager</a>, login, and check on the status of your library by checking your <strong>Staging Repository</strong> (link in the left pane).</li>
+</ol>
+<p><img src="../../images/sbt-publishing-nexus-left-pane.png" /></p>
+<p>Scroll through the list of repositories (all named <code>central_bundles</code> for some reason). Find the one matching your Group Id. Select it and choose the <strong>Content</strong> tab. Confirm that you have entries and files for each of your published libraries.</p>
+<p><img src="../../images/sbt-publishing-staging-repositories.png" /></p>
+<ol start="5" style="list-style-type: decimal">
+<li><p>You can now use <code>sbt sonatypeReleaseAll</code> to close and promote all staging repositories. You can also use the <strong>Close</strong> button on the top menu in Nexus to do this manually.</p></li>
+<li><p>Confirm that your Staging Repository no longer exists and that it now can be found under <strong>Repositories</strong> (left pane) and the <strong>Releases</strong> repository.</p></li>
+</ol>
+<p><img src="../../images/sbt-publishing-releases-repository.png" /></p>
+<p>At this point, it may take a few hours or so for the central repositories to sync your release. You can try to add the following temporarily to your <code>build.sbt</code> if you aren’t able to resolve the updated dependency -</p>
+<pre class="sbt"><code>resolvers += Resolver.sonatypeRepo(&quot;public&quot;)</code></pre>
+<h2 id="using-the-release-command">Using the Release Command</h2>
+<p>At this point you should be able to use the <code>sbt release</code> command; however, as of late I’ve been preferring doing it manually. Feel free to experiment with it, but be cautious and make sure that everything gets released as intended just as you would with the manual steps.</p>
+<p>Here we go!</p>
+<pre><code>% sbt release</code></pre>
+<p>First we’ll be prompted for our release version and next snapshot version. The release plugin does a good job of inferring the next release and snapshot bump. For example, if <code>version.sbt</code> contains <code>0.0.1-SNAPSHOT</code>, it will suggest <code>0.0.1</code> for release and <code>0.0.2-SNAPSHOT</code> for the next snapshot. Pretty nice! Of course, we have the option to provide different version numbers, but it’s still very convenient.</p>
+<pre><code>...
+[info] Starting release process off commit: 2f4d502524237e7555516cecfaa002313f5e1cbd
+[info] Checking remote [origin] ...
+...
+Release version [0.0.1] :
+Next version [0.0.2-SNAPSHOT] :
+[success] Total time: 0 s, completed Mar 9, 2018 10:38:57 PM
+
+[info] Setting scala version to 2.11.8
+...
+[info] ScalaTest
+...
+[info] Passed: Total 3, Failed 0, Errors 0, Passed 3
+[success] Total time: 8 s, completed Mar 9, 2018 10:39:05 PM
+
+[info] Setting scala version to 2.12.1
+...
+[info] ScalaTest
+...
+[info] Passed: Total 3, Failed 0, Errors 0, Passed 3
+[success] Total time: 10 s, completed Mar 9, 2018 10:39:15 PM
+
+[info] Setting scala version to 2.11.8
+...
+Please enter PGP passphrase (or ENTER to abort): *********
+[info]  published example_2.11 to https://oss.sonatype.org/content/repositories/snapshots/com/example/example_2.11/0.0.1/example_2.11-0.0.1.pom.asc
+...
+[success] Total time: 18 s, completed Mar 9, 2018 10:39:34 PM
+
+[info] Setting scala version to 2.12.1
+...
+[info]  published example_2.12 to https://oss.sonatype.org/content/repositories/snapshots/com/example/example_2.12/0.0.1/example_2.12-0.0.1.pom
+...
+[success] Total time: 17 s, completed Mar 9, 2018 10:39:51 PM
+
+[info] Setting version to '0.0.2-SNAPSHOT'.
+[info] Reapplying settings...
+...
+[info] [master 779c5d2] Setting version to 0.0.2-SNAPSHOT
+[info]  1 file changed, 1 insertion(+), 1 deletion(-)
+
+...
+Push changes to the remote repository (y/n)? [y]</code></pre>
+<p>I’ll mention again that while using the <code>release</code> command is <em>really</em> convenient, I would, at this time, recommend going through the steps manually to make sure everything goes smoothly.</p>
+    </div>
+  </div>
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2017
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

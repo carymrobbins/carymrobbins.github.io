@@ -93,20 +93,20 @@ Expr[scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.
   ).<span class="fu">asScala</span>.<span class="fu">toMap</span>(Predef.$conforms)
 )</code></pre></div>
 <p>In order to pull this off in Java, we can just follow the calls presented in the desugared ASTs from above -</p>
-<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.*;</span>
-<span class="kw">import scala.Predef;</span>
-<span class="kw">import scala.collection.Seq;</span>
-<span class="kw">import scala.collection.JavaConverters;</span>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.*;</span>
+<span class="kw">import</span><span class="im"> scala.Predef;</span>
+<span class="kw">import</span><span class="im"> scala.collection.Seq;</span>
+<span class="kw">import</span><span class="im"> scala.collection.JavaConverters;</span>
 
 <span class="kw">public</span> <span class="kw">class</span> Main {
-  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String args[]) {
+  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span> args[]) {
     <span class="co">// Java collections.</span>
-    List&lt;String&gt; jList = <span class="kw">new</span> ArrayList&lt;&gt;();
-    Map&lt;String, String&gt; jMap = <span class="kw">new</span> HashMap&lt;&gt;();
+    <span class="bu">List</span>&lt;<span class="bu">String</span>&gt; jList = <span class="kw">new</span> <span class="bu">ArrayList</span>&lt;&gt;();
+    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; jMap = <span class="kw">new</span> <span class="bu">HashMap</span>&lt;&gt;();
 
     <span class="co">// Convert to Scala collections.</span>
-    Seq&lt;String&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();
-    Map&lt;String, String&gt; sMap =
+    Seq&lt;<span class="bu">String</span>&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();
+    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; sMap =
       JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(jMap).<span class="fu">asScala</span>().<span class="fu">toMap</span>(Predef.$<span class="fu">conforms</span>());
   }
 }</code></pre></div>
