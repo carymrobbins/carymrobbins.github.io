@@ -1,5 +1,5 @@
 ---
-title: Merging Scala Case Classes with Shapeless and Monoid
+title: Merging Case Classes with Monoid and Shapeless
 ---
 
 The other day at work I came across a structure similar the following. The data,
@@ -15,25 +15,16 @@ final case class Info(
 ```
 
 Essentially, all of our fields are either `Option` or `Vector`. Later we have some code
-that's building our `Info` data using something like the following. Again, note that
-this is all very simplified to keep things digestible.
+that's building our `Info` data using something like the following.
 
 ```scala
 // Query for profile info, setting the name and city fields if they exist.
-def getProfileInfo(id: Int): Future[Option[Info]] = {
-  db.run(profileQuery(id)).map {
-    case None    => None
-    case Some(x) => Some(Info(name = x.name, city = x.city))
-  }
-}
+def getProfileInfo(id: Int): Future[Option[Info]] =
+  db.getProfileRecord(id).map(_.map(r => Info(name = r.name, city = r.city)))
 
 // Query for friend info, setting the friendIds field.
-def getFriendInfo(id: Int): Future[Option[Info]] = {
-  db.run(friendQuery(id)).map {
-    case None    => None
-    case Some(x) => Some(Info(friendIds = x.friendIds))
-  }
-}
+def getFriendInfo(id: Int): Future[Option[Info]] =
+  db.getFriends(id).map(_.map(r => Info(friendIds = r.friendIds)))
 
 // Fetch all info sources, joining the results.
 def getAllInfo(id: Int): Future[Either[String, Info]] =
@@ -53,11 +44,14 @@ def getAllInfo(id: Int): Future[Either[String, Info]] =
 ```
 
 That last `getAllInfo` method stuck out to me. It seemed that all we were really trying to do
-there was combine `Info` values. Sound familiar? Data types which are combinable form a
-`Monoid` (fancy math term from Category Theory). For this example, we'll be using the cats library.
-Be sure to check out the [cats documentation for Monoid](https://typelevel.org/cats/typeclasses/monoid.html).
+there was combine `Info` values. Sound familiar?
 
-TL;DR - `Monoid` is a type class which contains two methods -
+## Making a Monoid
+
+Data types which are _combinable_ form a
+[Monoid](https://typelevel.org/cats/typeclasses/monoid.html) (fancy math term from Category Theory). For this example, we'll be using the cats library.
+
+`Monoid` is a type class which contains two methods -
 
 ```scala
 trait Monoid[A] {
@@ -66,15 +60,19 @@ trait Monoid[A] {
 }
 ```
 
-Astute readers may notice that I've left out `Monoid`'s superclass `Semigroup`, which is actually
+<div class="alert alert-success">
+**Aside**: Astute readers may notice that I've left out `Monoid`'s superclass `Semigroup`, which is actually
 where its `combine` method comes from. `Monoid` builds on `Semigroup` by introducing the `empty`
-method, sometimes also referred to as the "identity". As such, `Monoid` is often defined as a
-`Semigroup` with _identity_. Not really a prerequisite for understanding this article, but worth
+method, sometimes also referred to as the _identity_. As such, `Monoid` is often defined as a
+`Semigroup` _with_ identity. Not really a prerequisite for understanding this article, but worth
 pointing out for completeness.
+</div>
 
 Let's define a `Monoid` instance for `Info` -
 
 ```scala
+import cats.Monoid
+
 object Info {
   implicit val monoid: Monoid[Info] = new Monoid[Info] {
     override def empty: Info = Info()
@@ -87,7 +85,60 @@ object Info {
 }
 ```
 
-Then our `getAllInfo` logic can become -
+Now we can combine `Info` values!
+
+```scala
+Monoid[Info].combine(
+  Info(None, Some("a"), Vector(1)),
+  Info(Some("c"), Some("d"), Vector(2))
+)
+// Info(Some(c),Some(a),Vector(1, 2))
+```
+
+Alternatively we can use the `|+|` operator -
+
+```scala
+import cats.syntax.monoid._
+Info(None, Some("a"), Vector(1)) |+| Info(Some("c"), Some("d"), Vector(2))
+// Info(Some(c),Some(a),Vector(1, 2))
+```
+
+You can also use `Foldable` to collapse a sequence of values with `combineAll`. This
+can be useful if you have many or even an indeterminate number of values to combine -
+
+```scala
+import cats.instances.list._
+import cats.syntax.foldable._
+
+List(
+  Info(None, Some("a"), Vector(1)),
+  Info(Some("c"), Some("d"), Vector(2))
+).combineAll
+// Info(Some(c),Some(a),Vector(1, 2))
+```
+
+In our case, we actually had `Option[Info]`, so we can piggy-back off of `Option`'s
+instance of `Monoid` which simply appends the values inside of `Some`s, discarding the
+`None`s.
+
+```scala
+List(None: Option[Info]).combineAll
+// None
+
+List(
+  None,
+  Some(Info(Some("c"), Some("d"), Vector(2)))
+).combineAll
+// Some(Info(Some(c),Some(d),Vector(2)))
+
+List[Option[Info]](
+  Some(Info(None, Some("a"), Vector(1))),
+  Some(Info(Some("c"), Some("d"), Vector(2)))
+).combineAll
+// Some(Info(Some(c),Some(a),Vector(1, 2)))
+```
+
+Putting it all together, our `getAllInfo` logic can become -
 
 ```scala
 import cats.instances.list._
@@ -104,16 +155,15 @@ def getAllInfo(id: Int): Future[Either[String, Info]] =
   ).combineAll.toRight("Failed to fetch info")
 ```
 
-Much simpler right? We're using the `Option` instance for `Monoid` combined with
-the `List` instance for `Foldable` to get the `.combineAll` method which builds
-up an `Option[Info]` from our `List[Option[Info]]`. We then convert that
-resulting `Option[Info]` to an `Either[String, Info]` using `.toRight`.
+Much simpler right?
+
+## Generalizing Merge
 
 Now, our Monoid definition is just a little tedious in this case, but imagine we have more fields on our case class. Writing this
 by hand can get a little unwieldy and error-prone (particularly since our case class has default fields).
 Can we abstract this further?
 
-Let's look at that `Monoid` definition again, specifically where we're combining the fields -
+Let's look at that `Monoid` definition again, specifically where we're merging the fields -
 
 ```scala
 Info(name1.orElse(name2), city1.orElse(city2), friendIds1 ++ friendIds2)
@@ -144,23 +194,27 @@ Info(name1.combineK(name2), city1.combineK(city2), friendIds1.combineK(friendIds
 ```
 
 But that doesn't really feel much better. It still requires us to write each field by hand and,
-strictly by programmer diligence, to not forget a field. Let's try to abstract away the
+strictly by programmer diligence, to not forget a field.
+
+## Ad tedium ⇒ Correctness
+
+Let's try to abstract away the
 field boilerplate with [shapeless](https://github.com/milessabin/shapeless)' `Generic` type class.
 
 ```scala
-scala> import shapeless._
+import shapeless._
 
-scala> val g = Generic[Info]
-g: shapeless.Generic[Info]{type Repr = Option[String] :: Option[String] :: scala.collection.immutable.Vector[Int] :: shapeless.HNil} = anon$macro$8$1@381fe083
+val g = Generic[Info]
+// g: shapeless.Generic[Info]{type Repr = Option[String] :: Option[String] :: scala.collection.immutable.Vector[Int] :: shapeless.HNil} = anon$macro$8$1@381fe083
 
-scala> g.to(Info())
-res1: g.Repr = None :: None :: Vector() :: HNil
+g.to(Info())
+// None :: None :: Vector() :: HNil
 
-scala> g.to(Info(Some("foo"), None, Vector(1, 2)))
-res2: g.Repr = Some(foo) :: None :: Vector(1, 2) :: HNil
+g.to(Info(Some("foo"), None, Vector(1, 2)))
+// Some(foo) :: None :: Vector(1, 2) :: HNil
 
-scala> g.from(res3)
-res3: Info = Info(Some(foo),None,Vector(1, 2))
+g.from(res3)
+// Info(Some(foo),None,Vector(1, 2))
 ```
 
 `Generic` allows us to convert our case class into an `HList` and back again.
@@ -240,21 +294,23 @@ def mergeTuple[F[_], V](t: (F[V], F[V]))(implicit F: MonoidK[F]): F[V] = t match
 Let's try it out -
 
 ```scala
-scala> mergeTuple((Option.empty[String], Option("bar")))
-res10: Option[String] = Some(bar)
+mergeTuple((Option.empty[String], Option("bar")))
+// res10: Option[String] = Some(bar)
 
-scala> mergeTuple((Option("foo"), Option("bar")))
-res11: Option[String] = Some(foo)
+mergeTuple((Option("foo"), Option("bar")))
+// res11: Option[String] = Some(foo)
 
-scala> mergeTuple((Vector(1), Vector(2)))
-res12: scala.collection.immutable.Vector[Int] = Vector(1, 2)
+mergeTuple((Vector(1), Vector(2)))
+// res12: scala.collection.immutable.Vector[Int] = Vector(1, 2)
 ```
 
 Alright! Let's supply it to `.map` and be done with this.
 
 ```scala
-scala> zipped.map(mergeTuple)
-<console>:13: error: polymorphic expression cannot be instantiated to expected type;
+zipped.map(mergeTuple)
+```
+```text
+error: polymorphic expression cannot be instantiated to expected type;
  found   : [F[_], V](t: (F[V], F[V]))(implicit F: cats.MonoidK[F])F[V]
  required: shapeless.Poly
        zipped.map(mergeTuple)
@@ -264,15 +320,17 @@ scala> zipped.map(mergeTuple)
 Huh? We gave it a perfectly fine function to work with, but it wants us to give it
 a...`Poly`? Why?
 
+## Polymorphic Functions
+
 The problem is that simple (non-generic) data structures like `List` are homogeneously
 typed: they only really contain elements of a single type.
 
 ```scala
-scala> List((None, Option("bar")), (Option("baz"), None))
-res14: List[(Option[String], Option[String])] = List((None,Some(bar)), (Some(baz),None))
+List((None, Option("bar")), (Option("baz"), None))
+// res14: List[(Option[String], Option[String])] = List((None,Some(bar)), (Some(baz),None))
 
-scala> res14.map(mergeTuple[Option, String])
-res15: List[Option[String]] = List(Some(bar), Some(baz))
+res14.map(mergeTuple[Option, String])
+// res15: List[Option[String]] = List(Some(bar), Some(baz))
 ```
 
 In the above case, our `List` elements are all typed `(Option[String], Option[String])`
@@ -280,15 +338,17 @@ and there is no way to have different types at different element positions.
 Contrast this with `HList` -
 
 ```scala
-scala> hlistX
-res16: Option[String] :: Option[String] :: Vector[Int] :: shapeless.HNil = Some(foo) :: None :: Vector(1, 2) :: HNil
+hlistX
+// res16: Option[String] :: Option[String] :: Vector[Int] :: shapeless.HNil = Some(foo) :: None :: Vector(1, 2) :: HNil
 ```
 
 Here each element has its own type. Scala doesn't have a built-in way to deal with
 generic polymorphism (not to be confused with _generics_ which is actually parametric
 polymorphism). This is where shapeless' `Poly` comes in.
 
-`Poly` provides _polymorphic function_ support. There are arity variants such as `Poly1`,
+In languages like [Haskell](https://www.haskell.org/), functions are already
+polymorphic. In Scala we don't have that luxury, so `Poly` provides us with
+_polymorphic function_ support. There are arity variants such as `Poly1`,
 `Poly2`, etc. Let's reimplement our `mergeTuple` function in terms of `Poly1` -
 
 ```scala
@@ -304,21 +364,21 @@ To get a deeper understanding of how `Poly` works, check out the
 Let's take our new `polyMerge` function for a spin -
 
 ```scala
-scala> polyMerge((Vector(1), Vector(2)))
-res17: scala.collection.immutable.Vector[Int] = Vector(1, 2)
+polyMerge((Vector(1), Vector(2)))
+// res17: scala.collection.immutable.Vector[Int] = Vector(1, 2)
 
-scala> polyMerge((Option.empty[String], Option("bar")))
-res18: Option[String] = Some(bar)
+polyMerge((None: Option[String], Option("bar")))
+// res18: Option[String] = Some(bar)
 
-scala> polyMerge((Option("foo"), Option("bar")))
-res19: Option[String] = Some(foo)
+polyMerge((Option("foo"), Option("bar")))
+// res19: Option[String] = Some(foo)
 ```
 
 It works! Now we can add in our `polyMerge` function into our `Info` example.
 Picking up from where we left off -
 
 ```scala
-val hlistR: Option[String] :: Option[String] :: Vector[Int] :: HNil = zipped.map(polyMerge)
+val hlistR = zipped.map(polyMerge)
 // Some(foo) :: Some(bar) :: Vector(1, 2) :: HNil
 
 val res: Info = g.from(hlistR)
@@ -344,9 +404,13 @@ val hlistR = hlistX.zipWith(hlistY)(polyMerge)
 Alright, let's try to put it all together now into our `default` method
 and get to auto-deriving already!
 
+## Deriving GMerge
+
 When working with Shapeless, compiler errors can be a little cryptic,
 so I'll walk through each step, demonstrating how to resolve them as we
 encounter each one.
+
+Here's our original implementation with `Info` removed for type `A`.
 
 ```scala
 implicit def default[A]: GMerge[A] = new GMerge[A] {
@@ -360,12 +424,13 @@ implicit def default[A]: GMerge[A] = new GMerge[A] {
 }
 ```
 
-```scala
+```text
 Error:(45, 20) could not find implicit value for parameter gen: shapeless.Generic[A]
     val g = Generic[A]
 ```
 
-Following the compiler's orders, let's add a `Generic` constraint.
+Following the compiler's orders, let's move the `Generic`
+from the method body and into the implicit constraints.
 
 ```scala
 implicit def default[A](
@@ -381,7 +446,7 @@ implicit def default[A](
 }
 ```
 
-```scala
+```text
 Error:(50, 27) value zipWith is not a member of g.Repr
       val hlistR = hlistX.zipWith(hlistY)(polyMerge)
 ```
@@ -403,7 +468,7 @@ implicit def default[A, L <: HList](
 }
 ```
 
-```scala
+```text
 Error:(50, 42) could not find implicit value for parameter
   zipWith: shapeless.ops.hlist.ZipWith[g.Repr,g.Repr,polyMerge.type]
       val hlistR = hlistX.zipWith(hlistY)(polyMerge)
@@ -421,11 +486,12 @@ object ZipWith {
 ```
 
 The type arguments correspond as follows -
+
 * `L` - The left `HList` being zipped
 * `R` - The right `HList` being zipped
 * `P` - The `Poly` function being applied
-* `Out` - The return type of `zipWith`, which is the `HList` type returned
-  from applying our `Poly` function to each of its elements.
+* `Out` - The return type of `zipWith`, which is the resulting `HList` type returned
+  from applying our `Poly` function to each of the zipped elements.
 
 In our case the left and right element types of each `HList` should be the same since we're
 just merging `A`s together, and the return type should also be the same. For the `Poly`
@@ -465,13 +531,13 @@ object Info {
 }
 ```
 
-```scala
-Error:(24, 58) could not find implicit value for evidence parameter of type example.GMerge[example.Info]
+```text
+Error:(24, 58) could not find implicit value for evidence parameter of type GMerge[Info]
     override def combine(x: Info, y: Info): Info = GMerge[Info].merge(x, y)
 ```
 
-This error is pretty cryptic and will happen if you are missing one of the necessary
-implicits to allow `polyMerge` to work for your case class. In this case, we need
+This error is extraordinarily cryptic and will happen if you are missing one of the necessary
+implicits to allow `polyMerge` to work for each of your case class fields. In this case, we need
 to bring in the `MonoidK` instances for `Option` and `Vector`, so let's do that -
 
 ```scala
@@ -480,6 +546,8 @@ import cats.instances.option._
 ```
 
 And it compiles!
+
+## The Final Product
 
 For completeness, here's the full implementation. It's a good practice
 to keep the `Info` case class and `GMerge` trait in their own respective
@@ -529,6 +597,15 @@ object GMerge {
 }
 ```
 
+<div class="alert alert-success">
+**Aside**: You could go even further and derive your own `empty` method using
+Shapeless as well; however, as of this writing I found this a little
+more challenging than expected due to a
+[scalac bug](https://github.com/scala/bug/issues/10849).
+The solution involves writing a proxy type class
+to delegate to `MonoidK`. See the linked ticket for more info.
+</div>
+
 A good next step would be to write a test for your case class to ensure that your
 `Monoid` instance obeys the laws.
 
@@ -543,3 +620,5 @@ class InfoSpec extends FunSuite with Discipline {
   checkAll("Monoid[Info]", MonoidTests[Info].monoid)
 }
 ```
+
+Happy Deriving!
