@@ -54,7 +54,7 @@
   <hr />
   <div class="row">
     <div class="col-md-12">
-      <p>The other day at work I came across a structure similar the following. The data, types, and logic have all been greatly simplified to protect you from irrelevant noise.</p>
+      <p>The other day at work I came across a structure similar to the following. The data, types, and logic have all been greatly simplified to protect you from irrelevant noise.</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">Info</span>(
   name: Option[String] = None,
   city: Option[String] = None,
@@ -183,10 +183,10 @@ List[Option[Info]](
 g.<span class="fu">to</span>(<span class="fu">Info</span>())
 <span class="co">// None :: None :: Vector() :: HNil</span>
 
-g.<span class="fu">to</span>(<span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>)))
+<span class="kw">val</span> hlist = g.<span class="fu">to</span>(<span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>)))
 <span class="co">// Some(foo) :: None :: Vector(1, 2) :: HNil</span>
 
-g.<span class="fu">from</span>(res3)
+g.<span class="fu">from</span>(hlist)
 <span class="co">// Info(Some(foo),None,Vector(1, 2))</span></code></pre></div>
 <p><code>Generic</code> allows us to convert our case class into an <code>HList</code> and back again. The intermediate <code>HList</code> representation provides us with ways to perform generic operations on the structure before we re-assemble it.</p>
 <p>Let’s introduce our own type class called <code>GMerge</code> which will provide generic merging functionality for types which have a <code>Generic</code> instance (which includes all case classes) where all of the fields support <code>MonoidK</code>.</p>
