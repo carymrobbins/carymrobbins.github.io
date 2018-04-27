@@ -2,7 +2,7 @@
 title: Merging Case Classes with Monoid and Shapeless
 ---
 
-The other day at work I came across a structure similar the following. The data,
+The other day at work I came across a structure similar to the following. The data,
 types, and logic have all been greatly simplified to protect you from irrelevant
 noise.
 
@@ -210,10 +210,10 @@ val g = Generic[Info]
 g.to(Info())
 // None :: None :: Vector() :: HNil
 
-g.to(Info(Some("foo"), None, Vector(1, 2)))
+val hlist = g.to(Info(Some("foo"), None, Vector(1, 2)))
 // Some(foo) :: None :: Vector(1, 2) :: HNil
 
-g.from(res3)
+g.from(hlist)
 // Info(Some(foo),None,Vector(1, 2))
 ```
 
