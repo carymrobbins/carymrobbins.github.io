@@ -53,7 +53,7 @@ licenses := Seq("Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"
 publishMavenStyle := true
 publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
-publishTo := {
+publishTo in ThisBuild := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value)
     Some("snapshots" at nexus + "content/repositories/snapshots")
@@ -125,7 +125,7 @@ A couple things to note about this configuration -
 * The `cache` configuration just allows Travis to reuse existing files, speeding up build times.
 
 Next we'll need to configure our Sonatype credentials by creating a `sonatype.sbt`
-file in our SBT configuration directory. For example, I'm using `~/.sbt/0.13/sonatype.sbt`
+file in our SBT configuration directory. For example, I'm using `~/.sbt/1.0/sonatype.sbt`
 but that may be different for a different version of SBT. Be sure to **NOT** put your Sonatype
 credentials in your library!
 
@@ -372,3 +372,24 @@ Push changes to the remote repository (y/n)? [y]
 I'll mention again that while using the `release` command is _really_ convenient,
 I would, at this time, recommend going through the steps manually to make sure everything
 goes smoothly.
+
+### Update 7/19/2019
+
+An update was made to this post. For SBT 0.13, using just `publishTo` was acceptable -
+
+```scala
+publishTo := { ... }
+```
+
+However, upon upgrading to SBT 1.0 I encountered the following error when
+attempting to `sbt +publishSigned` -
+
+```
+[error] java.lang.RuntimeException: Repository for publishing is not specified.
+```
+
+It seems that you now have to specify `in ThisBuild` for things to work properly -
+
+```scala
+publishTo in ThisBuild := { ... }
+```
