@@ -1,11 +1,12 @@
-resolver: lts-6.35
+resolver: lts-13.5
 
 packages:
 - '.'
 
-extra-deps: [
-  hakyll-sass-0.2.0
-]
+extra-deps:
+- hakyll-4.12.5.2
+- hakyll-sass-0.2.4
+- lrucache-1.2.0.1
 
 flags: {}
 

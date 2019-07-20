@@ -4,17 +4,17 @@ GIT_NAME := $(shell git config user.name)
 GIT_EMAIL := $(shell git config user.email)
 GIT_SSHCOMMAND := $(shell git config core.sshcommand)
 
-all: watch
+all: clean watch
 
-site: clean
+site:
 	bower install
-	stack build --flag pandoc:highlighting
+	stack build
 
 build: site
 	stack exec site -- build
 
 watch: site build
-	stack exec site -- watch -h 0.0.0.0
+	stack exec site -- watch --host 0.0.0.0
 
 clean:
 	rm -rf _site/* _store _cache
