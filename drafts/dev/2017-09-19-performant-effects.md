@@ -1,4 +1,6 @@
-# Programming with Effects
+---
+title: Programming with Effects
+---
 
 You may have heard of the elusive `IO` monad from Haskell. You may have even used
 it or one of its analogues in other languages. Currently, there are many competing
