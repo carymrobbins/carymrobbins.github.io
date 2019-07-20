@@ -16,7 +16,7 @@
 
     <!-- assets -->
     <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
 
   </head>
   <body>
@@ -55,61 +55,61 @@
   <div class="row">
     <div class="col-md-12">
       <p>Converting between Java and Scala collections from Scala code is remarkably easy -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; <span class="kw">import</span> scala.<span class="fu">collection</span>.<span class="fu">JavaConverters</span>.<span class="fu">_</span>
-
-scala&gt; <span class="kw">val</span> jList = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">ArrayList</span>[String]
-
-scala&gt; jList.<span class="fu">asScala</span>
-scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Buffer</span>[String] = Buffer()
-
-scala&gt; jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span>
-Seq[String] = Buffer()
-
-scala&gt; <span class="kw">val</span> sList = List[String]()
-List[String] = List()
-
-scala&gt; sList.<span class="fu">asJava</span>
-java.<span class="fu">util</span>.<span class="fu">List</span>[String] = []
-
-scala&gt; <span class="kw">val</span> jMap = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">HashMap</span>[String,String]
-
-scala&gt; jMap.<span class="fu">asScala</span>
-res6: scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Map</span>[String,String] = Map()
-
-scala&gt; jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span>
-res7: scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String] = Map()</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb1-1" title="1">scala&gt; <span class="kw">import</span> scala.<span class="fu">collection</span>.<span class="fu">JavaConverters</span>._</a>
+<a class="sourceLine" id="cb1-2" title="2"></a>
+<a class="sourceLine" id="cb1-3" title="3">scala&gt; <span class="kw">val</span> jList = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">ArrayList</span>[String]</a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5">scala&gt; jList.<span class="fu">asScala</span></a>
+<a class="sourceLine" id="cb1-6" title="6">scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Buffer</span>[String] = Buffer()</a>
+<a class="sourceLine" id="cb1-7" title="7"></a>
+<a class="sourceLine" id="cb1-8" title="8">scala&gt; jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span></a>
+<a class="sourceLine" id="cb1-9" title="9">Seq[String] = Buffer()</a>
+<a class="sourceLine" id="cb1-10" title="10"></a>
+<a class="sourceLine" id="cb1-11" title="11">scala&gt; <span class="kw">val</span> sList = List[String]()</a>
+<a class="sourceLine" id="cb1-12" title="12">List[String] = List()</a>
+<a class="sourceLine" id="cb1-13" title="13"></a>
+<a class="sourceLine" id="cb1-14" title="14">scala&gt; sList.<span class="fu">asJava</span></a>
+<a class="sourceLine" id="cb1-15" title="15">java.<span class="fu">util</span>.<span class="fu">List</span>[String] = []</a>
+<a class="sourceLine" id="cb1-16" title="16"></a>
+<a class="sourceLine" id="cb1-17" title="17">scala&gt; <span class="kw">val</span> jMap = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">HashMap</span>[String,String]</a>
+<a class="sourceLine" id="cb1-18" title="18"></a>
+<a class="sourceLine" id="cb1-19" title="19">scala&gt; jMap.<span class="fu">asScala</span></a>
+<a class="sourceLine" id="cb1-20" title="20">res6: scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Map</span>[String,String] = Map()</a>
+<a class="sourceLine" id="cb1-21" title="21"></a>
+<a class="sourceLine" id="cb1-22" title="22">scala&gt; jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span></a>
+<a class="sourceLine" id="cb1-23" title="23">res7: scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String] = Map()</a></code></pre></div>
 <p>But doing the same from Java is a little more difficult. We can see what Scala is doing under the hood by using <code>reify</code> then use the same approach from Java -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">scala&gt; <span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">runtime</span>.{universe =&gt; u}
-
-scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span> })
-Expr[Seq[String]](
-  JavaConverters.<span class="fu">asScalaBufferConverter</span>($read.<span class="fu">jList</span>).<span class="fu">asScala</span>.<span class="fu">toSeq</span>
-)
-
-scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span> })
-Expr[scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String]](
-  JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(
-    $read.$iw.$iw.$iw.$iw.<span class="fu">jMap</span>
-  ).<span class="fu">asScala</span>.<span class="fu">toMap</span>(Predef.$conforms)
-)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb2-1" title="1">scala&gt; <span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">runtime</span>.{universe =&gt; u}</a>
+<a class="sourceLine" id="cb2-2" title="2"></a>
+<a class="sourceLine" id="cb2-3" title="3">scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span> })</a>
+<a class="sourceLine" id="cb2-4" title="4">Expr[Seq[String]](</a>
+<a class="sourceLine" id="cb2-5" title="5">  JavaConverters.<span class="fu">asScalaBufferConverter</span>($read.<span class="fu">jList</span>).<span class="fu">asScala</span>.<span class="fu">toSeq</span></a>
+<a class="sourceLine" id="cb2-6" title="6">)</a>
+<a class="sourceLine" id="cb2-7" title="7"></a>
+<a class="sourceLine" id="cb2-8" title="8">scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span> })</a>
+<a class="sourceLine" id="cb2-9" title="9">Expr[scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String]](</a>
+<a class="sourceLine" id="cb2-10" title="10">  JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(</a>
+<a class="sourceLine" id="cb2-11" title="11">    $read.$iw.$iw.$iw.$iw.<span class="fu">jMap</span></a>
+<a class="sourceLine" id="cb2-12" title="12">  ).<span class="fu">asScala</span>.<span class="fu">toMap</span>(Predef.$conforms)</a>
+<a class="sourceLine" id="cb2-13" title="13">)</a></code></pre></div>
 <p>In order to pull this off in Java, we can just follow the calls presented in the desugared ASTs from above -</p>
-<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.*;</span>
-<span class="kw">import</span><span class="im"> scala.Predef;</span>
-<span class="kw">import</span><span class="im"> scala.collection.Seq;</span>
-<span class="kw">import</span><span class="im"> scala.collection.JavaConverters;</span>
-
-<span class="kw">public</span> <span class="kw">class</span> Main {
-  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span> args[]) {
-    <span class="co">// Java collections.</span>
-    <span class="bu">List</span>&lt;<span class="bu">String</span>&gt; jList = <span class="kw">new</span> <span class="bu">ArrayList</span>&lt;&gt;();
-    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; jMap = <span class="kw">new</span> <span class="bu">HashMap</span>&lt;&gt;();
-
-    <span class="co">// Convert to Scala collections.</span>
-    Seq&lt;<span class="bu">String</span>&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();
-    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; sMap =
-      JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(jMap).<span class="fu">asScala</span>().<span class="fu">toMap</span>(Predef.$<span class="fu">conforms</span>());
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">import</span><span class="im"> java.util.*;</span></a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="kw">import</span><span class="im"> scala.Predef;</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">import</span><span class="im"> scala.collection.Seq;</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="kw">import</span><span class="im"> scala.collection.JavaConverters;</span></a>
+<a class="sourceLine" id="cb3-5" title="5"></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="kw">public</span> <span class="kw">class</span> Main {</a>
+<a class="sourceLine" id="cb3-7" title="7">  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span> args[]) {</a>
+<a class="sourceLine" id="cb3-8" title="8">    <span class="co">// Java collections.</span></a>
+<a class="sourceLine" id="cb3-9" title="9">    <span class="bu">List</span>&lt;<span class="bu">String</span>&gt; jList = <span class="kw">new</span> <span class="bu">ArrayList</span>&lt;&gt;();</a>
+<a class="sourceLine" id="cb3-10" title="10">    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; jMap = <span class="kw">new</span> <span class="bu">HashMap</span>&lt;&gt;();</a>
+<a class="sourceLine" id="cb3-11" title="11"></a>
+<a class="sourceLine" id="cb3-12" title="12">    <span class="co">// Convert to Scala collections.</span></a>
+<a class="sourceLine" id="cb3-13" title="13">    Seq&lt;<span class="bu">String</span>&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();</a>
+<a class="sourceLine" id="cb3-14" title="14">    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; sMap =</a>
+<a class="sourceLine" id="cb3-15" title="15">      JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(jMap).<span class="fu">asScala</span>().<span class="fu">toMap</span>(Predef.$<span class="fu">conforms</span>());</a>
+<a class="sourceLine" id="cb3-16" title="16">  }</a>
+<a class="sourceLine" id="cb3-17" title="17">}</a></code></pre></div>
     </div>
   </div>
   <div id="disqus_thread"></div>

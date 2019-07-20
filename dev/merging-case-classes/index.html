@@ -16,7 +16,7 @@
 
     <!-- assets -->
     <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
 
   </head>
   <body>
@@ -55,197 +55,197 @@
   <div class="row">
     <div class="col-md-12">
       <p>The other day at work I came across a structure similar to the following. The data, types, and logic have all been greatly simplified to protect you from irrelevant noise.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">Info</span>(
-  name: Option[String] = None,
-  city: Option[String] = None,
-  friendIds: Vector[Int] = Vector.<span class="fu">empty</span>
-)</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">Info</span>(</a>
+<a class="sourceLine" id="cb1-2" title="2">  name: Option[String] = None,</a>
+<a class="sourceLine" id="cb1-3" title="3">  city: Option[String] = None,</a>
+<a class="sourceLine" id="cb1-4" title="4">  friendIds: Vector[Int] = Vector.<span class="fu">empty</span></a>
+<a class="sourceLine" id="cb1-5" title="5">)</a></code></pre></div>
 <p>Essentially, all of our fields are either <code>Option</code> or <code>Vector</code>. Later we have some code that’s building our <code>Info</code> data using something like the following.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="co">// Query for profile info, setting the name and city fields if they exist.</span>
-<span class="kw">def</span> <span class="fu">getProfileInfo</span>(id: Int): Future[Option[Info]] =
-  db.<span class="fu">getProfileRecord</span>(id).<span class="fu">map</span>(_.<span class="fu">map</span>(r =&gt; <span class="fu">Info</span>(name = r.<span class="fu">name</span>, city = r.<span class="fu">city</span>)))
-
-<span class="co">// Query for friend info, setting the friendIds field.</span>
-<span class="kw">def</span> <span class="fu">getFriendInfo</span>(id: Int): Future[Option[Info]] =
-  db.<span class="fu">getFriends</span>(id).<span class="fu">map</span>(_.<span class="fu">map</span>(r =&gt; <span class="fu">Info</span>(friendIds = r.<span class="fu">friendIds</span>)))
-
-<span class="co">// Fetch all info sources, joining the results.</span>
-<span class="kw">def</span> <span class="fu">getAllInfo</span>(id: Int): Future[Either[String, Info]] =
-  <span class="kw">for</span> {
-    optProfileInfo &lt;- <span class="fu">getProfileInfo</span>(id)
-    optFriendInfo  &lt;- <span class="fu">getFriendInfo</span>(id)
-  } <span class="kw">yield</span> (optProfileInfo, optFriendInfo) <span class="kw">match</span> {
-    <span class="kw">case</span> (Some(profileInfo), Some(friendInfo)) =&gt;
-      <span class="fu">Right</span>(profileInfo.<span class="fu">copy</span>(friendIds = friendInfo.<span class="fu">friendIds</span>))
-    <span class="kw">case</span> (Some(profileInfo), None) =&gt;
-      <span class="fu">Right</span>(profileInfo)
-    <span class="kw">case</span> (None, Some(friendInfo)) =&gt;
-      <span class="fu">Right</span>(friendInfo)
-    <span class="kw">case</span> (None, None) =&gt;
-      <span class="fu">Left</span>(<span class="st">&quot;Failed to fetch info&quot;</span>)
-  }</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb2-1" title="1"><span class="co">// Query for profile info, setting the name and city fields if they exist.</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="kw">def</span> <span class="fu">getProfileInfo</span>(id: Int): Future[Option[Info]] =</a>
+<a class="sourceLine" id="cb2-3" title="3">  db.<span class="fu">getProfileRecord</span>(id).<span class="fu">map</span>(_.<span class="fu">map</span>(r =&gt; <span class="fu">Info</span>(name = r.<span class="fu">name</span>, city = r.<span class="fu">city</span>)))</a>
+<a class="sourceLine" id="cb2-4" title="4"></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="co">// Query for friend info, setting the friendIds field.</span></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="kw">def</span> <span class="fu">getFriendInfo</span>(id: Int): Future[Option[Info]] =</a>
+<a class="sourceLine" id="cb2-7" title="7">  db.<span class="fu">getFriends</span>(id).<span class="fu">map</span>(_.<span class="fu">map</span>(r =&gt; <span class="fu">Info</span>(friendIds = r.<span class="fu">friendIds</span>)))</a>
+<a class="sourceLine" id="cb2-8" title="8"></a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">// Fetch all info sources, joining the results.</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="kw">def</span> <span class="fu">getAllInfo</span>(id: Int): Future[Either[String, Info]] =</a>
+<a class="sourceLine" id="cb2-11" title="11">  <span class="kw">for</span> {</a>
+<a class="sourceLine" id="cb2-12" title="12">    optProfileInfo &lt;- <span class="fu">getProfileInfo</span>(id)</a>
+<a class="sourceLine" id="cb2-13" title="13">    optFriendInfo  &lt;- <span class="fu">getFriendInfo</span>(id)</a>
+<a class="sourceLine" id="cb2-14" title="14">  } <span class="kw">yield</span> (optProfileInfo, optFriendInfo) <span class="kw">match</span> {</a>
+<a class="sourceLine" id="cb2-15" title="15">    <span class="kw">case</span> (Some(profileInfo), Some(friendInfo)) =&gt;</a>
+<a class="sourceLine" id="cb2-16" title="16">      <span class="fu">Right</span>(profileInfo.<span class="fu">copy</span>(friendIds = friendInfo.<span class="fu">friendIds</span>))</a>
+<a class="sourceLine" id="cb2-17" title="17">    <span class="kw">case</span> (Some(profileInfo), None) =&gt;</a>
+<a class="sourceLine" id="cb2-18" title="18">      <span class="fu">Right</span>(profileInfo)</a>
+<a class="sourceLine" id="cb2-19" title="19">    <span class="kw">case</span> (None, Some(friendInfo)) =&gt;</a>
+<a class="sourceLine" id="cb2-20" title="20">      <span class="fu">Right</span>(friendInfo)</a>
+<a class="sourceLine" id="cb2-21" title="21">    <span class="kw">case</span> (None, None) =&gt;</a>
+<a class="sourceLine" id="cb2-22" title="22">      <span class="fu">Left</span>(<span class="st">&quot;Failed to fetch info&quot;</span>)</a>
+<a class="sourceLine" id="cb2-23" title="23">  }</a></code></pre></div>
 <p>That last <code>getAllInfo</code> method stuck out to me. It seemed that all we were really trying to do there was combine <code>Info</code> values. Sound familiar?</p>
 <h2 id="making-a-monoid">Making a Monoid</h2>
 <p>Data types which are <em>combinable</em> form a <a href="https://typelevel.org/cats/typeclasses/monoid.html">Monoid</a> (fancy math term from Category Theory). For this example, we’ll be using the cats library.</p>
 <p><code>Monoid</code> is a type class which contains two methods -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">trait</span> Monoid[A] {
-  <span class="kw">def</span> <span class="fu">combine</span>(x: A, y: A): A
-  <span class="kw">def</span> empty: A
-}</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">trait</span> Monoid[A] {</a>
+<a class="sourceLine" id="cb3-2" title="2">  <span class="kw">def</span> <span class="fu">combine</span>(x: A, y: A): A</a>
+<a class="sourceLine" id="cb3-3" title="3">  <span class="kw">def</span> empty: A</a>
+<a class="sourceLine" id="cb3-4" title="4">}</a></code></pre></div>
 <div class="alert alert-success">
 <p><strong>Aside</strong>: Astute readers may notice that I’ve left out <code>Monoid</code>’s superclass <code>Semigroup</code>, which is actually where its <code>combine</code> method comes from. <code>Monoid</code> builds on <code>Semigroup</code> by introducing the <code>empty</code> method, sometimes also referred to as the <em>identity</em>. As such, <code>Monoid</code> is often defined as a <code>Semigroup</code> <em>with</em> identity. Not really a prerequisite for understanding this article, but worth pointing out for completeness.</p>
 </div>
 <p>Let’s define a <code>Monoid</code> instance for <code>Info</code> -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">Monoid</span>
-
-<span class="kw">object</span> Info {
-  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {
-    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()
-    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = {
-      <span class="kw">val</span> <span class="fu">Info</span>(name1, city1, friendIds1) = x
-      <span class="kw">val</span> <span class="fu">Info</span>(name2, city2, friendIds2) = y
-      <span class="fu">Info</span>(name1.<span class="fu">orElse</span>(name2), city1.<span class="fu">orElse</span>(city2), friendIds1 ++ friendIds2)
-    }
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">import</span> cats.<span class="fu">Monoid</span></a>
+<a class="sourceLine" id="cb4-2" title="2"></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="kw">object</span> Info {</a>
+<a class="sourceLine" id="cb4-4" title="4">  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {</a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()</a>
+<a class="sourceLine" id="cb4-6" title="6">    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = {</a>
+<a class="sourceLine" id="cb4-7" title="7">      <span class="kw">val</span> <span class="fu">Info</span>(name1, city1, friendIds1) = x</a>
+<a class="sourceLine" id="cb4-8" title="8">      <span class="kw">val</span> <span class="fu">Info</span>(name2, city2, friendIds2) = y</a>
+<a class="sourceLine" id="cb4-9" title="9">      <span class="fu">Info</span>(name1.<span class="fu">orElse</span>(name2), city1.<span class="fu">orElse</span>(city2), friendIds1 ++ friendIds2)</a>
+<a class="sourceLine" id="cb4-10" title="10">    }</a>
+<a class="sourceLine" id="cb4-11" title="11">  }</a>
+<a class="sourceLine" id="cb4-12" title="12">}</a></code></pre></div>
 <p>Now we can combine <code>Info</code> values!</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">Monoid[Info].<span class="fu">combine</span>(
-  <span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)),
-  <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))
-)
-<span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb5-1" title="1">Monoid[Info].<span class="fu">combine</span>(</a>
+<a class="sourceLine" id="cb5-2" title="2">  <span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)),</a>
+<a class="sourceLine" id="cb5-3" title="3">  <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb5-4" title="4">)</a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></a></code></pre></div>
 <p>Alternatively we can use the <code>|+|</code> operator -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">monoid</span>.<span class="fu">_</span>
-<span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)) |+| <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))
-<span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">monoid</span>._</a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)) |+| <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></a></code></pre></div>
 <p>You can also use <code>Foldable</code> to collapse a sequence of values with <code>combineAll</code>. This can be useful if you have many or even an indeterminate number of values to combine -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">list</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">foldable</span>.<span class="fu">_</span>
-
-List(
-  <span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)),
-  <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))
-).<span class="fu">combineAll</span>
-<span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">list</span>._</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">foldable</span>._</a>
+<a class="sourceLine" id="cb7-3" title="3"></a>
+<a class="sourceLine" id="cb7-4" title="4">List(</a>
+<a class="sourceLine" id="cb7-5" title="5">  <span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>)),</a>
+<a class="sourceLine" id="cb7-6" title="6">  <span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb7-7" title="7">).<span class="fu">combineAll</span></a>
+<a class="sourceLine" id="cb7-8" title="8"><span class="co">// Info(Some(c),Some(a),Vector(1, 2))</span></a></code></pre></div>
 <p>In our case, we actually had <code>Option[Info]</code>, so we can piggy-back off of <code>Option</code>’s instance of <code>Monoid</code> which simply appends the values inside of <code>Some</code>s, discarding the <code>None</code>s.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">List(None: Option[Info]).<span class="fu">combineAll</span>
-<span class="co">// None</span>
-
-List(
-  None,
-  Some(<span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>)))
-).<span class="fu">combineAll</span>
-<span class="co">// Some(Info(Some(c),Some(d),Vector(2)))</span>
-
-List[Option[Info]](
-  Some(<span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>))),
-  Some(<span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>)))
-).<span class="fu">combineAll</span>
-<span class="co">// Some(Info(Some(c),Some(a),Vector(1, 2)))</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb8-1" title="1">List(None: Option[Info]).<span class="fu">combineAll</span></a>
+<a class="sourceLine" id="cb8-2" title="2"><span class="co">// None</span></a>
+<a class="sourceLine" id="cb8-3" title="3"></a>
+<a class="sourceLine" id="cb8-4" title="4">List(</a>
+<a class="sourceLine" id="cb8-5" title="5">  None,</a>
+<a class="sourceLine" id="cb8-6" title="6">  Some(<span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb8-7" title="7">).<span class="fu">combineAll</span></a>
+<a class="sourceLine" id="cb8-8" title="8"><span class="co">// Some(Info(Some(c),Some(d),Vector(2)))</span></a>
+<a class="sourceLine" id="cb8-9" title="9"></a>
+<a class="sourceLine" id="cb8-10" title="10">List[Option[Info]](</a>
+<a class="sourceLine" id="cb8-11" title="11">  Some(<span class="fu">Info</span>(None, Some(<span class="st">&quot;a&quot;</span>), Vector(<span class="dv">1</span>))),</a>
+<a class="sourceLine" id="cb8-12" title="12">  Some(<span class="fu">Info</span>(Some(<span class="st">&quot;c&quot;</span>), Some(<span class="st">&quot;d&quot;</span>), Vector(<span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb8-13" title="13">).<span class="fu">combineAll</span></a>
+<a class="sourceLine" id="cb8-14" title="14"><span class="co">// Some(Info(Some(c),Some(a),Vector(1, 2)))</span></a></code></pre></div>
 <p>Putting it all together, our <code>getAllInfo</code> logic can become -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">list</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">foldable</span>.<span class="fu">_</span>
-
-<span class="kw">def</span> <span class="fu">getAllInfo</span>(id: Int): Future[Either[String, Info]] =
-  <span class="kw">for</span> {
-    optProfileInfo &lt;- <span class="fu">getProfileInfo</span>(id)
-    optFriendInfo  &lt;- <span class="fu">getFriendInfo</span>(id)
-  } <span class="kw">yield</span> List(
-    optProfileInfo,
-    optFriendInfo
-  ).<span class="fu">combineAll</span>.<span class="fu">toRight</span>(<span class="st">&quot;Failed to fetch info&quot;</span>)</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">list</span>._</a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>._</a>
+<a class="sourceLine" id="cb9-3" title="3"><span class="kw">import</span> cats.<span class="fu">syntax</span>.<span class="fu">foldable</span>._</a>
+<a class="sourceLine" id="cb9-4" title="4"></a>
+<a class="sourceLine" id="cb9-5" title="5"><span class="kw">def</span> <span class="fu">getAllInfo</span>(id: Int): Future[Either[String, Info]] =</a>
+<a class="sourceLine" id="cb9-6" title="6">  <span class="kw">for</span> {</a>
+<a class="sourceLine" id="cb9-7" title="7">    optProfileInfo &lt;- <span class="fu">getProfileInfo</span>(id)</a>
+<a class="sourceLine" id="cb9-8" title="8">    optFriendInfo  &lt;- <span class="fu">getFriendInfo</span>(id)</a>
+<a class="sourceLine" id="cb9-9" title="9">  } <span class="kw">yield</span> List(</a>
+<a class="sourceLine" id="cb9-10" title="10">    optProfileInfo,</a>
+<a class="sourceLine" id="cb9-11" title="11">    optFriendInfo</a>
+<a class="sourceLine" id="cb9-12" title="12">  ).<span class="fu">combineAll</span>.<span class="fu">toRight</span>(<span class="st">&quot;Failed to fetch info&quot;</span>)</a></code></pre></div>
 <p>Much simpler right?</p>
 <h2 id="generalizing-merge">Generalizing Merge</h2>
 <p>Now, our Monoid definition is just a little tedious in this case, but imagine we have more fields on our case class. Writing this by hand can get a little unwieldy and error-prone (particularly since our case class has default fields). Can we abstract this further?</p>
 <p>Let’s look at that <code>Monoid</code> definition again, specifically where we’re merging the fields -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="fu">Info</span>(name1.<span class="fu">orElse</span>(name2), city1.<span class="fu">orElse</span>(city2), friendIds1 ++ friendIds2)</code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb10-1" title="1"><span class="fu">Info</span>(name1.<span class="fu">orElse</span>(name2), city1.<span class="fu">orElse</span>(city2), friendIds1 ++ friendIds2)</a></code></pre></div>
 <p>So for <code>Option</code> values we need to use <code>.orElse</code>, and for <code>Vector</code> values we need to use <code>++</code>. Is there some abstraction that does this for us? Why yes, yes there is!</p>
 <p>Enter <a href="https://typelevel.org/cats/typeclasses/monoidk.html">MonoidK</a>. It’s very similar to <code>Monoid</code> except it operates on a <em>higher kind</em>. It has a superclass: <code>SemigroupK</code>, but we’ll simplify the definition for now.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">trait</span> MonoidK[F[_]] {
-  <span class="kw">def</span> combineK[A](x: F[A], y: F[A]): F[A]
-  <span class="kw">def</span> empty[A]: F[A]
-}</code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">trait</span> MonoidK[F[_]] {</a>
+<a class="sourceLine" id="cb11-2" title="2">  <span class="kw">def</span> combineK[A](x: F[A], y: F[A]): F[A]</a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="kw">def</span> empty[A]: F[A]</a>
+<a class="sourceLine" id="cb11-4" title="4">}</a></code></pre></div>
 <p>So we could abstract away our hand-written combines with -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">MonoidK</span>.<span class="fu">ops</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>.<span class="fu">_</span>
-...
-<span class="fu">Info</span>(name1.<span class="fu">combineK</span>(name2), city1.<span class="fu">combineK</span>(city2), friendIds1.<span class="fu">combineK</span>(friendIds2))</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">import</span> cats.<span class="fu">MonoidK</span>.<span class="fu">ops</span>._</a>
+<a class="sourceLine" id="cb12-2" title="2"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>._</a>
+<a class="sourceLine" id="cb12-3" title="3"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>._</a>
+<a class="sourceLine" id="cb12-4" title="4">...</a>
+<a class="sourceLine" id="cb12-5" title="5"><span class="fu">Info</span>(name1.<span class="fu">combineK</span>(name2), city1.<span class="fu">combineK</span>(city2), friendIds1.<span class="fu">combineK</span>(friendIds2))</a></code></pre></div>
 <p>But that doesn’t really feel much better. It still requires us to write each field by hand and, strictly by programmer diligence, to not forget a field.</p>
 <h2 id="ad-tedium-correctness">Ad tedium ⇒ Correctness</h2>
 <p>Let’s try to abstract away the field boilerplate with <a href="https://github.com/milessabin/shapeless">shapeless</a>’ <code>Generic</code> type class.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> shapeless.<span class="fu">_</span>
-
-<span class="kw">val</span> g = Generic[Info]
-<span class="co">// g: shapeless.Generic[Info]{type Repr = Option[String] :: Option[String] :: scala.collection.immutable.Vector[Int] :: shapeless.HNil} = anon$macro$8$1@381fe083</span>
-
-g.<span class="fu">to</span>(<span class="fu">Info</span>())
-<span class="co">// None :: None :: Vector() :: HNil</span>
-
-<span class="kw">val</span> hlist = g.<span class="fu">to</span>(<span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>)))
-<span class="co">// Some(foo) :: None :: Vector(1, 2) :: HNil</span>
-
-g.<span class="fu">from</span>(hlist)
-<span class="co">// Info(Some(foo),None,Vector(1, 2))</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">import</span> shapeless._</a>
+<a class="sourceLine" id="cb13-2" title="2"></a>
+<a class="sourceLine" id="cb13-3" title="3"><span class="kw">val</span> g = Generic[Info]</a>
+<a class="sourceLine" id="cb13-4" title="4"><span class="co">// g: shapeless.Generic[Info]{type Repr = Option[String] :: Option[String] :: scala.collection.immutable.Vector[Int] :: shapeless.HNil} = anon$macro$8$1@381fe083</span></a>
+<a class="sourceLine" id="cb13-5" title="5"></a>
+<a class="sourceLine" id="cb13-6" title="6">g.<span class="fu">to</span>(<span class="fu">Info</span>())</a>
+<a class="sourceLine" id="cb13-7" title="7"><span class="co">// None :: None :: Vector() :: HNil</span></a>
+<a class="sourceLine" id="cb13-8" title="8"></a>
+<a class="sourceLine" id="cb13-9" title="9"><span class="kw">val</span> hlist = g.<span class="fu">to</span>(<span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb13-10" title="10"><span class="co">// Some(foo) :: None :: Vector(1, 2) :: HNil</span></a>
+<a class="sourceLine" id="cb13-11" title="11"></a>
+<a class="sourceLine" id="cb13-12" title="12">g.<span class="fu">from</span>(hlist)</a>
+<a class="sourceLine" id="cb13-13" title="13"><span class="co">// Info(Some(foo),None,Vector(1, 2))</span></a></code></pre></div>
 <p><code>Generic</code> allows us to convert our case class into an <code>HList</code> and back again. The intermediate <code>HList</code> representation provides us with ways to perform generic operations on the structure before we re-assemble it.</p>
 <p>Let’s introduce our own type class called <code>GMerge</code> which will provide generic merging functionality for types which have a <code>Generic</code> instance (which includes all case classes) where all of the fields support <code>MonoidK</code>.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">trait</span> GMerge[A] {
-  <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A
-}
-
-<span class="kw">object</span> GMerge {
-
-  <span class="co">// Provide a helper method for summoning a GMerge instance.</span>
-  <span class="kw">def</span> apply[A: GMerge]: GMerge[A] = implicitly
-
-  <span class="co">// Auto-derive an instance of GMerge.</span>
-  <span class="kw">implicit</span> <span class="kw">def</span> default[A]: GMerge[A] = <span class="kw">new</span> GMerge[A] {
-    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = ???
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb14-1" title="1"><span class="kw">trait</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb14-2" title="2">  <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A</a>
+<a class="sourceLine" id="cb14-3" title="3">}</a>
+<a class="sourceLine" id="cb14-4" title="4"></a>
+<a class="sourceLine" id="cb14-5" title="5"><span class="kw">object</span> GMerge {</a>
+<a class="sourceLine" id="cb14-6" title="6"></a>
+<a class="sourceLine" id="cb14-7" title="7">  <span class="co">// Provide a helper method for summoning a GMerge instance.</span></a>
+<a class="sourceLine" id="cb14-8" title="8">  <span class="kw">def</span> apply[A: GMerge]: GMerge[A] = implicitly</a>
+<a class="sourceLine" id="cb14-9" title="9"></a>
+<a class="sourceLine" id="cb14-10" title="10">  <span class="co">// Auto-derive an instance of GMerge.</span></a>
+<a class="sourceLine" id="cb14-11" title="11">  <span class="kw">implicit</span> <span class="kw">def</span> default[A]: GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb14-12" title="12">    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = ???</a>
+<a class="sourceLine" id="cb14-13" title="13">  }</a>
+<a class="sourceLine" id="cb14-14" title="14">}</a></code></pre></div>
 <p>Goal now is to implement the <code>default</code> method which derives our <code>GMerge</code> instance. Let’s start by just attempting to think about the logical flow.</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Obtain the generic representation (<code>HList</code>) of both <code>x</code> and <code>y</code></li>
 <li>Zip the <code>HList</code> values together, producing an <code>HList</code> of <code>Tuple2</code> (<code>(B, B)</code>)</li>
 <li>Run a merging function over the zipped <code>HList</code>, merging the elements of each <code>Tuple2</code> together with <code>MonoidK</code>, returning a new <code>HList</code> matching the original type structure.</li>
 <li>Convert the “merged” <code>HList</code></li>
 </ol>
 <p>In the case of <code>Info</code>, the types would look something like -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> x = <span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>))
-<span class="kw">val</span> y = <span class="fu">Info</span>(None, Some(<span class="st">&quot;bar&quot;</span>), Vector.<span class="fu">empty</span>)
-<span class="kw">val</span> g = Generic[Info]
-
-<span class="kw">val</span> hlistX: Option[String] :: Option[String] :: Vector[Int] :: HNil = g.<span class="fu">to</span>(x)
-<span class="co">// Some(foo) :: None :: Vector(1, 2) :: HNil</span>
-
-<span class="kw">val</span> hlistY: Option[String] :: Option[String] :: Vector[Int] :: HNil = g.<span class="fu">to</span>(y)
-<span class="co">// None :: Some(bar) :: Vector() :: HNil</span>
-
-<span class="kw">val</span> zipped: (Option[String], Option[String]) ::
-            (Option[String], Option[String]) ::
-            (Vector[Int],    Vector[Int]) ::
-            HNil = hlistX.<span class="fu">zip</span>(hlistY)
-<span class="co">// (Some(foo),None) :: (None,Some(bar)) :: (Vector(1, 2),Vector()) :: HNil</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb15-1" title="1"><span class="kw">val</span> x = <span class="fu">Info</span>(Some(<span class="st">&quot;foo&quot;</span>), None, Vector(<span class="dv">1</span>, <span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb15-2" title="2"><span class="kw">val</span> y = <span class="fu">Info</span>(None, Some(<span class="st">&quot;bar&quot;</span>), Vector.<span class="fu">empty</span>)</a>
+<a class="sourceLine" id="cb15-3" title="3"><span class="kw">val</span> g = Generic[Info]</a>
+<a class="sourceLine" id="cb15-4" title="4"></a>
+<a class="sourceLine" id="cb15-5" title="5"><span class="kw">val</span> hlistX: Option[String] :: Option[String] :: Vector[Int] :: HNil = g.<span class="fu">to</span>(x)</a>
+<a class="sourceLine" id="cb15-6" title="6"><span class="co">// Some(foo) :: None :: Vector(1, 2) :: HNil</span></a>
+<a class="sourceLine" id="cb15-7" title="7"></a>
+<a class="sourceLine" id="cb15-8" title="8"><span class="kw">val</span> hlistY: Option[String] :: Option[String] :: Vector[Int] :: HNil = g.<span class="fu">to</span>(y)</a>
+<a class="sourceLine" id="cb15-9" title="9"><span class="co">// None :: Some(bar) :: Vector() :: HNil</span></a>
+<a class="sourceLine" id="cb15-10" title="10"></a>
+<a class="sourceLine" id="cb15-11" title="11"><span class="kw">val</span> zipped: (Option[String], Option[String]) ::</a>
+<a class="sourceLine" id="cb15-12" title="12">            (Option[String], Option[String]) ::</a>
+<a class="sourceLine" id="cb15-13" title="13">            (Vector[Int],    Vector[Int]) ::</a>
+<a class="sourceLine" id="cb15-14" title="14">            HNil = hlistX.<span class="fu">zip</span>(hlistY)</a>
+<a class="sourceLine" id="cb15-15" title="15"><span class="co">// (Some(foo),None) :: (None,Some(bar)) :: (Vector(1, 2),Vector()) :: HNil</span></a></code></pre></div>
 <p>You can actually run all of the code above in an Scala console for some defined <code>x</code> and <code>y</code> values. The next part, however, won’t work, but demonstrates the principle of what we need to do.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> f = ??? <span class="co">// Function for merging fields.</span>
-<span class="kw">val</span> hlistR: Option[String] :: Option[String] :: Vector[Int] :: HNil = zipped.<span class="fu">map</span>(f)
-<span class="kw">val</span> result: Info = g.<span class="fu">from</span>(hlistR)</code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">def</span> f = ??? <span class="co">// Function for merging fields.</span></a>
+<a class="sourceLine" id="cb16-2" title="2"><span class="kw">val</span> hlistR: Option[String] :: Option[String] :: Vector[Int] :: HNil = zipped.<span class="fu">map</span>(f)</a>
+<a class="sourceLine" id="cb16-3" title="3"><span class="kw">val</span> result: Info = g.<span class="fu">from</span>(hlistR)</a></code></pre></div>
 <p>So somehow we need to build a function which can be mapped over an <code>HList</code> of <code>Tuple2</code>, merging the fields accordingly with <code>MonoidK</code>. Let’s take a whack at it.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> mergeTuple[F[_], V](t: (F[V], F[V]))(<span class="kw">implicit</span> F: MonoidK[F]): F[V] = t <span class="kw">match</span> {
-  <span class="kw">case</span> (x, y) =&gt; F.<span class="fu">combineK</span>(x, y)
-}</code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb17-1" title="1"><span class="kw">def</span> mergeTuple[F[_], V](t: (F[V], F[V]))(<span class="kw">implicit</span> F: MonoidK[F]): F[V] = t <span class="kw">match</span> {</a>
+<a class="sourceLine" id="cb17-2" title="2">  <span class="kw">case</span> (x, y) =&gt; F.<span class="fu">combineK</span>(x, y)</a>
+<a class="sourceLine" id="cb17-3" title="3">}</a></code></pre></div>
 <p>Let’s try it out -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="fu">mergeTuple</span>((Option.<span class="fu">empty</span>[String], Option(<span class="st">&quot;bar&quot;</span>)))
-<span class="co">// res10: Option[String] = Some(bar)</span>
-
-<span class="fu">mergeTuple</span>((Option(<span class="st">&quot;foo&quot;</span>), Option(<span class="st">&quot;bar&quot;</span>)))
-<span class="co">// res11: Option[String] = Some(foo)</span>
-
-<span class="fu">mergeTuple</span>((Vector(<span class="dv">1</span>), Vector(<span class="dv">2</span>)))
-<span class="co">// res12: scala.collection.immutable.Vector[Int] = Vector(1, 2)</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb18-1" title="1"><span class="fu">mergeTuple</span>((Option.<span class="fu">empty</span>[String], Option(<span class="st">&quot;bar&quot;</span>)))</a>
+<a class="sourceLine" id="cb18-2" title="2"><span class="co">// res10: Option[String] = Some(bar)</span></a>
+<a class="sourceLine" id="cb18-3" title="3"></a>
+<a class="sourceLine" id="cb18-4" title="4"><span class="fu">mergeTuple</span>((Option(<span class="st">&quot;foo&quot;</span>), Option(<span class="st">&quot;bar&quot;</span>)))</a>
+<a class="sourceLine" id="cb18-5" title="5"><span class="co">// res11: Option[String] = Some(foo)</span></a>
+<a class="sourceLine" id="cb18-6" title="6"></a>
+<a class="sourceLine" id="cb18-7" title="7"><span class="fu">mergeTuple</span>((Vector(<span class="dv">1</span>), Vector(<span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb18-8" title="8"><span class="co">// res12: scala.collection.immutable.Vector[Int] = Vector(1, 2)</span></a></code></pre></div>
 <p>Alright! Let’s supply it to <code>.map</code> and be done with this.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">zipped.<span class="fu">map</span>(mergeTuple)</code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb19-1" title="1">zipped.<span class="fu">map</span>(mergeTuple)</a></code></pre></div>
 <pre class="text"><code>error: polymorphic expression cannot be instantiated to expected type;
  found   : [F[_], V](t: (F[V], F[V]))(implicit F: cats.MonoidK[F])F[V]
  required: shapeless.Poly
@@ -254,93 +254,93 @@ g.<span class="fu">from</span>(hlist)
 <p>Huh? We gave it a perfectly fine function to work with, but it wants us to give it a…<code>Poly</code>? Why?</p>
 <h2 id="polymorphic-functions">Polymorphic Functions</h2>
 <p>The problem is that simple (non-generic) data structures like <code>List</code> are homogeneously typed: they only really contain elements of a single type.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">List((None, Option(<span class="st">&quot;bar&quot;</span>)), (Option(<span class="st">&quot;baz&quot;</span>), None))
-<span class="co">// res14: List[(Option[String], Option[String])] = List((None,Some(bar)), (Some(baz),None))</span>
-
-res14.<span class="fu">map</span>(mergeTuple[Option, String])
-<span class="co">// res15: List[Option[String]] = List(Some(bar), Some(baz))</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb21-1" title="1">List((None, Option(<span class="st">&quot;bar&quot;</span>)), (Option(<span class="st">&quot;baz&quot;</span>), None))</a>
+<a class="sourceLine" id="cb21-2" title="2"><span class="co">// res14: List[(Option[String], Option[String])] = List((None,Some(bar)), (Some(baz),None))</span></a>
+<a class="sourceLine" id="cb21-3" title="3"></a>
+<a class="sourceLine" id="cb21-4" title="4">res14.<span class="fu">map</span>(mergeTuple[Option, String])</a>
+<a class="sourceLine" id="cb21-5" title="5"><span class="co">// res15: List[Option[String]] = List(Some(bar), Some(baz))</span></a></code></pre></div>
 <p>In the above case, our <code>List</code> elements are all typed <code>(Option[String], Option[String])</code> and there is no way to have different types at different element positions. Contrast this with <code>HList</code> -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">hlistX
-<span class="co">// res16: Option[String] :: Option[String] :: Vector[Int] :: shapeless.HNil = Some(foo) :: None :: Vector(1, 2) :: HNil</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb22-1" title="1">hlistX</a>
+<a class="sourceLine" id="cb22-2" title="2"><span class="co">// res16: Option[String] :: Option[String] :: Vector[Int] :: shapeless.HNil = Some(foo) :: None :: Vector(1, 2) :: HNil</span></a></code></pre></div>
 <p>Here each element has its own type. Scala doesn’t have a built-in way to deal with generic polymorphism (not to be confused with <em>generics</em> which is actually parametric polymorphism). This is where shapeless’ <code>Poly</code> comes in.</p>
 <p>In languages like <a href="https://www.haskell.org/">Haskell</a>, functions are already polymorphic. In Scala we don’t have that luxury, so <code>Poly</code> provides us with <em>polymorphic function</em> support. There are arity variants such as <code>Poly1</code>, <code>Poly2</code>, etc. Let’s reimplement our <code>mergeTuple</code> function in terms of <code>Poly1</code> -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly1 {
-  <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[(F[V], F[V]), F[V]] =
-    at[(F[V], F[V])] { <span class="kw">case</span> (x, y) =&gt; F.<span class="fu">combineK</span>(x, y) }
-}</code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb23-1" title="1"><span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly1 {</a>
+<a class="sourceLine" id="cb23-2" title="2">  <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[(F[V], F[V]), F[V]] =</a>
+<a class="sourceLine" id="cb23-3" title="3">    at[(F[V], F[V])] { <span class="kw">case</span> (x, y) =&gt; F.<span class="fu">combineK</span>(x, y) }</a>
+<a class="sourceLine" id="cb23-4" title="4">}</a></code></pre></div>
 <p>To get a deeper understanding of how <code>Poly</code> works, check out the <a href="https://github.com/milessabin/shapeless/wiki/Feature-overview:-shapeless-2.0.0#polymorphic-function-values">Shapeless 2.0 overview documentation</a>.</p>
 <p>Let’s take our new <code>polyMerge</code> function for a spin -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="fu">polyMerge</span>((Vector(<span class="dv">1</span>), Vector(<span class="dv">2</span>)))
-<span class="co">// res17: scala.collection.immutable.Vector[Int] = Vector(1, 2)</span>
-
-<span class="fu">polyMerge</span>((None: Option[String], Option(<span class="st">&quot;bar&quot;</span>)))
-<span class="co">// res18: Option[String] = Some(bar)</span>
-
-<span class="fu">polyMerge</span>((Option(<span class="st">&quot;foo&quot;</span>), Option(<span class="st">&quot;bar&quot;</span>)))
-<span class="co">// res19: Option[String] = Some(foo)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb24-1" title="1"><span class="fu">polyMerge</span>((Vector(<span class="dv">1</span>), Vector(<span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb24-2" title="2"><span class="co">// res17: scala.collection.immutable.Vector[Int] = Vector(1, 2)</span></a>
+<a class="sourceLine" id="cb24-3" title="3"></a>
+<a class="sourceLine" id="cb24-4" title="4"><span class="fu">polyMerge</span>((None: Option[String], Option(<span class="st">&quot;bar&quot;</span>)))</a>
+<a class="sourceLine" id="cb24-5" title="5"><span class="co">// res18: Option[String] = Some(bar)</span></a>
+<a class="sourceLine" id="cb24-6" title="6"></a>
+<a class="sourceLine" id="cb24-7" title="7"><span class="fu">polyMerge</span>((Option(<span class="st">&quot;foo&quot;</span>), Option(<span class="st">&quot;bar&quot;</span>)))</a>
+<a class="sourceLine" id="cb24-8" title="8"><span class="co">// res19: Option[String] = Some(foo)</span></a></code></pre></div>
 <p>It works! Now we can add in our <code>polyMerge</code> function into our <code>Info</code> example. Picking up from where we left off -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> hlistR = zipped.<span class="fu">map</span>(polyMerge)
-<span class="co">// Some(foo) :: Some(bar) :: Vector(1, 2) :: HNil</span>
-
-<span class="kw">val</span> res: Info = g.<span class="fu">from</span>(hlistR)
-<span class="co">// Info(Some(foo),Some(bar),Vector(1, 2))</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb25-1" title="1"><span class="kw">val</span> hlistR = zipped.<span class="fu">map</span>(polyMerge)</a>
+<a class="sourceLine" id="cb25-2" title="2"><span class="co">// Some(foo) :: Some(bar) :: Vector(1, 2) :: HNil</span></a>
+<a class="sourceLine" id="cb25-3" title="3"></a>
+<a class="sourceLine" id="cb25-4" title="4"><span class="kw">val</span> res: Info = g.<span class="fu">from</span>(hlistR)</a>
+<a class="sourceLine" id="cb25-5" title="5"><span class="co">// Info(Some(foo),Some(bar),Vector(1, 2))</span></a></code></pre></div>
 <p>Nice! One simplification we can make is to use <code>.zipWith</code> instead of <code>.zip().map()</code>. This also means that we need to use <code>Poly2</code> instead of <code>Poly1</code>, which actually turns out to be simpler -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly2 {
-  <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[F[V], F[V], F[V]] =
-    at[F[V], F[V]](F.<span class="fu">combineK</span>)
-}</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)
-<span class="co">// Some(foo) :: Some(bar) :: Vector(1, 2) :: HNil</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb26-1" title="1"><span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly2 {</a>
+<a class="sourceLine" id="cb26-2" title="2">  <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[F[V], F[V], F[V]] =</a>
+<a class="sourceLine" id="cb26-3" title="3">    at[F[V], F[V]](F.<span class="fu">combineK</span>)</a>
+<a class="sourceLine" id="cb26-4" title="4">}</a></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb27-1" title="1"><span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)</a>
+<a class="sourceLine" id="cb27-2" title="2"><span class="co">// Some(foo) :: Some(bar) :: Vector(1, 2) :: HNil</span></a></code></pre></div>
 <p>Alright, let’s try to put it all together now into our <code>default</code> method and get to auto-deriving already!</p>
 <h2 id="deriving-gmerge">Deriving GMerge</h2>
 <p>When working with Shapeless, compiler errors can be a little cryptic, so I’ll walk through each step, demonstrating how to resolve them as we encounter each one.</p>
 <p>Here’s our original implementation with <code>Info</code> removed for type <code>A</code>.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">implicit</span> <span class="kw">def</span> default[A]: GMerge[A] = <span class="kw">new</span> GMerge[A] {
-  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {
-    <span class="kw">val</span> g = Generic[A]
-    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)
-    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)
-    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)
-    g.<span class="fu">from</span>(hlistR)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb28-1" title="1"><span class="kw">implicit</span> <span class="kw">def</span> default[A]: GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb28-2" title="2">  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {</a>
+<a class="sourceLine" id="cb28-3" title="3">    <span class="kw">val</span> g = Generic[A]</a>
+<a class="sourceLine" id="cb28-4" title="4">    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)</a>
+<a class="sourceLine" id="cb28-5" title="5">    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)</a>
+<a class="sourceLine" id="cb28-6" title="6">    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)</a>
+<a class="sourceLine" id="cb28-7" title="7">    g.<span class="fu">from</span>(hlistR)</a>
+<a class="sourceLine" id="cb28-8" title="8">  }</a>
+<a class="sourceLine" id="cb28-9" title="9">}</a></code></pre></div>
 <pre class="text"><code>Error:(45, 20) could not find implicit value for parameter gen: shapeless.Generic[A]
     val g = Generic[A]</code></pre>
 <p>Following the compiler’s orders, let’s move the <code>Generic</code> from the method body and into the implicit constraints.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">implicit</span> <span class="kw">def</span> default[A](
-  <span class="kw">implicit</span>
-  g: Generic[A]
-): GMerge[A] = <span class="kw">new</span> GMerge[A] {
-  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {
-    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)
-    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)
-    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)
-    g.<span class="fu">from</span>(hlistR)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb30-1" title="1"><span class="kw">implicit</span> <span class="kw">def</span> default[A](</a>
+<a class="sourceLine" id="cb30-2" title="2">  <span class="kw">implicit</span></a>
+<a class="sourceLine" id="cb30-3" title="3">  g: Generic[A]</a>
+<a class="sourceLine" id="cb30-4" title="4">): GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb30-5" title="5">  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {</a>
+<a class="sourceLine" id="cb30-6" title="6">    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)</a>
+<a class="sourceLine" id="cb30-7" title="7">    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)</a>
+<a class="sourceLine" id="cb30-8" title="8">    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)</a>
+<a class="sourceLine" id="cb30-9" title="9">    g.<span class="fu">from</span>(hlistR)</a>
+<a class="sourceLine" id="cb30-10" title="10">  }</a>
+<a class="sourceLine" id="cb30-11" title="11">}</a></code></pre></div>
 <pre class="text"><code>Error:(50, 27) value zipWith is not a member of g.Repr
       val hlistR = hlistX.zipWith(hlistY)(polyMerge)</code></pre>
 <p>Problem now is that the compiler doesn’t know that our generic <code>Repr</code> is an <code>HList</code>. Let’s tell it.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](
-  <span class="kw">implicit</span>
-  g: Generic.<span class="fu">Aux</span>[A, L]
-): GMerge[A] = <span class="kw">new</span> GMerge[A] {
-  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {
-    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)
-    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)
-    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)
-    g.<span class="fu">from</span>(hlistR)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb32-1" title="1"><span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](</a>
+<a class="sourceLine" id="cb32-2" title="2">  <span class="kw">implicit</span></a>
+<a class="sourceLine" id="cb32-3" title="3">  g: Generic.<span class="fu">Aux</span>[A, L]</a>
+<a class="sourceLine" id="cb32-4" title="4">): GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb32-5" title="5">  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {</a>
+<a class="sourceLine" id="cb32-6" title="6">    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)</a>
+<a class="sourceLine" id="cb32-7" title="7">    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)</a>
+<a class="sourceLine" id="cb32-8" title="8">    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)</a>
+<a class="sourceLine" id="cb32-9" title="9">    g.<span class="fu">from</span>(hlistR)</a>
+<a class="sourceLine" id="cb32-10" title="10">  }</a>
+<a class="sourceLine" id="cb32-11" title="11">}</a></code></pre></div>
 <pre class="text"><code>Error:(50, 42) could not find implicit value for parameter
   zipWith: shapeless.ops.hlist.ZipWith[g.Repr,g.Repr,polyMerge.type]
       val hlistR = hlistX.zipWith(hlistY)(polyMerge)</code></pre>
 <p>This part might be a little more confusing, so let’s look at (a simplified version of) the <code>ZipWIth</code> type class.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">trait</span> ZipWith[L &lt;: HList, R &lt;: HList, P &lt;: Poly2] { <span class="kw">type</span> Out &lt;: HList }
-<span class="kw">object</span> ZipWith {
-  <span class="kw">type</span> Aux[L &lt;: HList, R &lt;: HList, P &lt;: Poly2, Out0 &lt;: HList] =
-    ZipWith[L, R, P] { <span class="kw">type</span> Out = Out0 }
-}</code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb34-1" title="1"><span class="kw">trait</span> ZipWith[L &lt;: HList, R &lt;: HList, P &lt;: Poly2] { <span class="kw">type</span> Out &lt;: HList }</a>
+<a class="sourceLine" id="cb34-2" title="2"><span class="kw">object</span> ZipWith {</a>
+<a class="sourceLine" id="cb34-3" title="3">  <span class="kw">type</span> Aux[L &lt;: HList, R &lt;: HList, P &lt;: Poly2, Out0 &lt;: HList] =</a>
+<a class="sourceLine" id="cb34-4" title="4">    ZipWith[L, R, P] { <span class="kw">type</span> Out = Out0 }</a>
+<a class="sourceLine" id="cb34-5" title="5">}</a></code></pre></div>
 <p>The type arguments correspond as follows -</p>
 <ul>
 <li><code>L</code> - The left <code>HList</code> being zipped</li>
@@ -349,88 +349,88 @@ res14.<span class="fu">map</span>(mergeTuple[Option, String])
 <li><code>Out</code> - The return type of <code>zipWith</code>, which is the resulting <code>HList</code> type returned from applying our <code>Poly</code> function to each of the zipped elements.</li>
 </ul>
 <p>In our case the left and right element types of each <code>HList</code> should be the same since we’re just merging <code>A</code>s together, and the return type should also be the same. For the <code>Poly</code> type, we can name function directly with <code>polyMerge.type</code>. This gives us a constraint that looks like -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]</code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb35-1" title="1">z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]</a></code></pre></div>
 <p>Putting it all together gives us -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](
-  <span class="kw">implicit</span>
-  g: Generic.<span class="fu">Aux</span>[A, L],
-  z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]
-): GMerge[A] = <span class="kw">new</span> GMerge[A] {
-  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {
-    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)
-    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)
-    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)
-    g.<span class="fu">from</span>(hlistR)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb36-1" title="1"><span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](</a>
+<a class="sourceLine" id="cb36-2" title="2">  <span class="kw">implicit</span></a>
+<a class="sourceLine" id="cb36-3" title="3">  g: Generic.<span class="fu">Aux</span>[A, L],</a>
+<a class="sourceLine" id="cb36-4" title="4">  z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]</a>
+<a class="sourceLine" id="cb36-5" title="5">): GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb36-6" title="6">  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = {</a>
+<a class="sourceLine" id="cb36-7" title="7">    <span class="kw">val</span> hlistX = g.<span class="fu">to</span>(x)</a>
+<a class="sourceLine" id="cb36-8" title="8">    <span class="kw">val</span> hlistY = g.<span class="fu">to</span>(y)</a>
+<a class="sourceLine" id="cb36-9" title="9">    <span class="kw">val</span> hlistR = hlistX.<span class="fu">zipWith</span>(hlistY)(polyMerge)</a>
+<a class="sourceLine" id="cb36-10" title="10">    g.<span class="fu">from</span>(hlistR)</a>
+<a class="sourceLine" id="cb36-11" title="11">  }</a>
+<a class="sourceLine" id="cb36-12" title="12">}</a></code></pre></div>
 <p>And it compiles! Now let’s try to use it to derive a <code>combine</code> implementation for <code>Monoid[Info]</code> -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> Info {
-  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {
-    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()
-    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = GMerge[Info].<span class="fu">merge</span>(x, y)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb37-1" title="1"><span class="kw">object</span> Info {</a>
+<a class="sourceLine" id="cb37-2" title="2">  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {</a>
+<a class="sourceLine" id="cb37-3" title="3">    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()</a>
+<a class="sourceLine" id="cb37-4" title="4">    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = GMerge[Info].<span class="fu">merge</span>(x, y)</a>
+<a class="sourceLine" id="cb37-5" title="5">  }</a>
+<a class="sourceLine" id="cb37-6" title="6">}</a></code></pre></div>
 <pre class="text"><code>Error:(24, 58) could not find implicit value for evidence parameter of type GMerge[Info]
     override def combine(x: Info, y: Info): Info = GMerge[Info].merge(x, y)</code></pre>
 <p>This error is extraordinarily cryptic and will happen if you are missing one of the necessary implicits to allow <code>polyMerge</code> to work for each of your case class fields. In this case, we need to bring in the <code>MonoidK</code> instances for <code>Option</code> and <code>Vector</code>, so let’s do that -</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>.<span class="fu">_</span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb39-1" title="1"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>._</a>
+<a class="sourceLine" id="cb39-2" title="2"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>._</a></code></pre></div>
 <p>And it compiles!</p>
 <h2 id="the-final-product">The Final Product</h2>
 <p>For completeness, here’s the full implementation. It’s a good practice to keep the <code>Info</code> case class and <code>GMerge</code> trait in their own respective files, but for simplicity (yet again) just including it in a single, working snippet.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.{Monoid, MonoidK}
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>.<span class="fu">_</span>
-<span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>.<span class="fu">_</span>
-<span class="kw">import</span> shapeless.<span class="fu">_</span>
-<span class="kw">import</span> shapeless.<span class="fu">ops</span>.<span class="fu">hlist</span>.<span class="fu">ZipWith</span>
-
-<span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">Info</span>(
-  name: Option[String] = None,
-  city: Option[String] = None,
-  friendIds: Vector[Int] = Vector.<span class="fu">empty</span>
-)
-
-<span class="kw">object</span> Info {
-  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {
-    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()
-    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = GMerge[Info].<span class="fu">merge</span>(x, y)
-  }
-}
-
-<span class="kw">trait</span> GMerge[A] {
-  <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A
-}
-
-<span class="kw">object</span> GMerge {
-
-  <span class="kw">def</span> apply[A: GMerge]: GMerge[A] = implicitly
-
-  <span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](
-    <span class="kw">implicit</span>
-    g: Generic.<span class="fu">Aux</span>[A, L],
-    z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]
-  ): GMerge[A] = <span class="kw">new</span> GMerge[A] {
-    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = g.<span class="fu">from</span>(g.<span class="fu">to</span>(x).<span class="fu">zipWith</span>(g.<span class="fu">to</span>(y))(polyMerge))
-  }
-
-  <span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly2 {
-    <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[F[V], F[V], F[V]] =
-      at[F[V], F[V]](F.<span class="fu">combineK</span>)
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb40-1" title="1"><span class="kw">import</span> cats.{Monoid, MonoidK}</a>
+<a class="sourceLine" id="cb40-2" title="2"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">vector</span>._</a>
+<a class="sourceLine" id="cb40-3" title="3"><span class="kw">import</span> cats.<span class="fu">instances</span>.<span class="fu">option</span>._</a>
+<a class="sourceLine" id="cb40-4" title="4"><span class="kw">import</span> shapeless._</a>
+<a class="sourceLine" id="cb40-5" title="5"><span class="kw">import</span> shapeless.<span class="fu">ops</span>.<span class="fu">hlist</span>.<span class="fu">ZipWith</span></a>
+<a class="sourceLine" id="cb40-6" title="6"></a>
+<a class="sourceLine" id="cb40-7" title="7"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">Info</span>(</a>
+<a class="sourceLine" id="cb40-8" title="8">  name: Option[String] = None,</a>
+<a class="sourceLine" id="cb40-9" title="9">  city: Option[String] = None,</a>
+<a class="sourceLine" id="cb40-10" title="10">  friendIds: Vector[Int] = Vector.<span class="fu">empty</span></a>
+<a class="sourceLine" id="cb40-11" title="11">)</a>
+<a class="sourceLine" id="cb40-12" title="12"></a>
+<a class="sourceLine" id="cb40-13" title="13"><span class="kw">object</span> Info {</a>
+<a class="sourceLine" id="cb40-14" title="14">  <span class="kw">implicit</span> <span class="kw">val</span> monoid: Monoid[Info] = <span class="kw">new</span> Monoid[Info] {</a>
+<a class="sourceLine" id="cb40-15" title="15">    <span class="kw">override</span> <span class="kw">def</span> empty: Info = <span class="fu">Info</span>()</a>
+<a class="sourceLine" id="cb40-16" title="16">    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">combine</span>(x: Info, y: Info): Info = GMerge[Info].<span class="fu">merge</span>(x, y)</a>
+<a class="sourceLine" id="cb40-17" title="17">  }</a>
+<a class="sourceLine" id="cb40-18" title="18">}</a>
+<a class="sourceLine" id="cb40-19" title="19"></a>
+<a class="sourceLine" id="cb40-20" title="20"><span class="kw">trait</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb40-21" title="21">  <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A</a>
+<a class="sourceLine" id="cb40-22" title="22">}</a>
+<a class="sourceLine" id="cb40-23" title="23"></a>
+<a class="sourceLine" id="cb40-24" title="24"><span class="kw">object</span> GMerge {</a>
+<a class="sourceLine" id="cb40-25" title="25"></a>
+<a class="sourceLine" id="cb40-26" title="26">  <span class="kw">def</span> apply[A: GMerge]: GMerge[A] = implicitly</a>
+<a class="sourceLine" id="cb40-27" title="27"></a>
+<a class="sourceLine" id="cb40-28" title="28">  <span class="kw">implicit</span> <span class="kw">def</span> default[A, L &lt;: HList](</a>
+<a class="sourceLine" id="cb40-29" title="29">    <span class="kw">implicit</span></a>
+<a class="sourceLine" id="cb40-30" title="30">    g: Generic.<span class="fu">Aux</span>[A, L],</a>
+<a class="sourceLine" id="cb40-31" title="31">    z: ZipWith.<span class="fu">Aux</span>[L, L, polyMerge.<span class="fu">type</span>, L]</a>
+<a class="sourceLine" id="cb40-32" title="32">  ): GMerge[A] = <span class="kw">new</span> GMerge[A] {</a>
+<a class="sourceLine" id="cb40-33" title="33">    <span class="kw">override</span> <span class="kw">def</span> <span class="fu">merge</span>(x: A, y: A): A = g.<span class="fu">from</span>(g.<span class="fu">to</span>(x).<span class="fu">zipWith</span>(g.<span class="fu">to</span>(y))(polyMerge))</a>
+<a class="sourceLine" id="cb40-34" title="34">  }</a>
+<a class="sourceLine" id="cb40-35" title="35"></a>
+<a class="sourceLine" id="cb40-36" title="36">  <span class="kw">object</span> polyMerge <span class="kw">extends</span> Poly2 {</a>
+<a class="sourceLine" id="cb40-37" title="37">    <span class="kw">implicit</span> <span class="kw">def</span> cases[F[_], V](<span class="kw">implicit</span> F: MonoidK[F]): Case.<span class="fu">Aux</span>[F[V], F[V], F[V]] =</a>
+<a class="sourceLine" id="cb40-38" title="38">      at[F[V], F[V]](F.<span class="fu">combineK</span>)</a>
+<a class="sourceLine" id="cb40-39" title="39">  }</a>
+<a class="sourceLine" id="cb40-40" title="40">}</a></code></pre></div>
 <div class="alert alert-success">
 <p><strong>Aside</strong>: You could go even further and derive your own <code>empty</code> method using Shapeless as well; however, as of this writing I found this a little more challenging than expected due to a <a href="https://github.com/scala/bug/issues/10849">scalac bug</a>. The solution involves writing a proxy type class to delegate to <code>MonoidK</code>. See the linked ticket for more info.</p>
 </div>
 <p>A good next step would be to write a test for your case class to ensure that your <code>Monoid</code> instance obeys the laws.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> cats.<span class="fu">kernel</span>.<span class="fu">laws</span>.<span class="fu">discipline</span>.<span class="fu">MonoidTests</span>
-<span class="kw">import</span> org.<span class="fu">scalacheck</span>.<span class="fu">Arbitrary</span>
-<span class="kw">import</span> org.<span class="fu">scalatest</span>.<span class="fu">FunSuite</span>
-<span class="kw">import</span> org.<span class="fu">typelevel</span>.<span class="fu">discipline</span>.<span class="fu">scalatest</span>.<span class="fu">Discipline</span>
-
-<span class="kw">class</span> InfoSpec <span class="kw">extends</span> FunSuite <span class="kw">with</span> Discipline {
-  <span class="kw">implicit</span> <span class="kw">val</span> arbInfo: Arbitrary[Info] = ???
-  <span class="fu">checkAll</span>(<span class="st">&quot;Monoid[Info]&quot;</span>, MonoidTests[Info].<span class="fu">monoid</span>)
-}</code></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb41-1" title="1"><span class="kw">import</span> cats.<span class="fu">kernel</span>.<span class="fu">laws</span>.<span class="fu">discipline</span>.<span class="fu">MonoidTests</span></a>
+<a class="sourceLine" id="cb41-2" title="2"><span class="kw">import</span> org.<span class="fu">scalacheck</span>.<span class="fu">Arbitrary</span></a>
+<a class="sourceLine" id="cb41-3" title="3"><span class="kw">import</span> org.<span class="fu">scalatest</span>.<span class="fu">FunSuite</span></a>
+<a class="sourceLine" id="cb41-4" title="4"><span class="kw">import</span> org.<span class="fu">typelevel</span>.<span class="fu">discipline</span>.<span class="fu">scalatest</span>.<span class="fu">Discipline</span></a>
+<a class="sourceLine" id="cb41-5" title="5"></a>
+<a class="sourceLine" id="cb41-6" title="6"><span class="kw">class</span> InfoSpec <span class="kw">extends</span> FunSuite <span class="kw">with</span> Discipline {</a>
+<a class="sourceLine" id="cb41-7" title="7">  <span class="kw">implicit</span> <span class="kw">val</span> arbInfo: Arbitrary[Info] = ???</a>
+<a class="sourceLine" id="cb41-8" title="8">  <span class="fu">checkAll</span>(<span class="st">&quot;Monoid[Info]&quot;</span>, MonoidTests[Info].<span class="fu">monoid</span>)</a>
+<a class="sourceLine" id="cb41-9" title="9">}</a></code></pre></div>
 <p>Happy Deriving!</p>
     </div>
   </div>
