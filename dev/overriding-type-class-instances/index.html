@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Overriding Type Class Instances</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Overriding Type Class Instances</h1>
+    </div>
+    <div class="col-md-12">
+      <small>August  9, 2019</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>It’s well known in the Haskell world that type class instances <em>cannot</em> be overridden. When you have an instance in scope, you are stuck with it. Is this a feature? Is this a bug? Maybe either depending on the problem you are facing. I have my own opinions, but let me lay out the case for wanting to be able to override instances.</p>
+<div class="alert alert-warning">
+<p><strong>Disclaimer:</strong> This idea is quite experimental and not entirely fleshed out. Consider this as purely a proof-of-concept that is clearly lacking features and could potentially be refined and simplified. There’s also the chance that this has already been invented, possibly in a better form, I just have yet to come across it. That being said, <strong>you have been warned</strong>.</p>
+</div>
+<p>Consider the following <em>very simple</em> type class for encoding values to <code>Text</code> -</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">class</span> <span class="dt">Encode</span> a <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="ot">  encode ::</span> a <span class="ot">-&gt;</span> <span class="dt">Text</span></a></code></pre></div>
+<p>We’ll define some instances for it -</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Int</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb2-2" title="2">  encode <span class="fu">=</span> Text.pack <span class="fu">.</span> <span class="fu">show</span></a>
+<a class="sourceLine" id="cb2-3" title="3"></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Text</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb2-5" title="5">  encode <span class="fu">=</span> <span class="fu">id</span></a></code></pre></div>
+<p>and they’ll do what you expect -</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="fu">%</span> ghci</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="fu">&gt;</span> encode (<span class="dv">12</span><span class="ot"> ::</span> <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="st">&quot;12&quot;</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="fu">&gt;</span> encode (<span class="st">&quot;foo&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="st">&quot;foo&quot;</span></a></code></pre></div>
+<p>Now let’s say we want to derive an <code>Encode</code> instance for a record type -</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
+<a class="sourceLine" id="cb4-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb4-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb4-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb4-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb4-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>) via <span class="dt">GenericEncode</span> <span class="dt">Rec</span></a></code></pre></div>
+<p>We’ll derive <code>Generic</code> and use a newtype <code>GenericEncode</code> (that we haven’t written yet) along with <code>DerivingVia</code> to use the generically-derived instance for <code>Encode</code>.</p>
+<p>What we’ll want is this behavior -</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="fu">%</span> ghci</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="fu">&gt;</span> encode (<span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span>)</a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="st">&quot;foo = 12, bar = hi, baz = bye&quot;</span></a></code></pre></div>
+<p>Going over generic derivation should be saved for another post, but I’ll quickly show the code and touch on the relevant parts.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">newtype</span> <span class="dt">GenericEncode</span> a <span class="fu">=</span> <span class="dt">GenericEncode</span> {<span class="ot"> unGenericEncode ::</span> a }</a>
+<a class="sourceLine" id="cb6-2" title="2"></a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="kw">instance</span> (<span class="dt">Generic</span> a, <span class="dt">Encode</span> (<span class="dt">Rep</span> a p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">GenericEncode</span> a) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-4" title="4">  encode <span class="fu">=</span> (encode <span class="fu">@</span>(<span class="dt">Rep</span> a p)) <span class="fu">.</span> from <span class="fu">.</span> unGenericEncode</a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="kw">instance</span> (<span class="dt">Encode</span> (f p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">D</span> x f p) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-7" title="7">  encode (<span class="dt">M1</span> x) <span class="fu">=</span> encode <span class="fu">@</span>(f p) x</a>
+<a class="sourceLine" id="cb6-8" title="8"></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="kw">instance</span> (<span class="dt">Encode</span> (f p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">C</span> x f p) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-10" title="10">  encode (<span class="dt">M1</span> x) <span class="fu">=</span> encode <span class="fu">@</span>(f p) x</a>
+<a class="sourceLine" id="cb6-11" title="11"></a>
+<a class="sourceLine" id="cb6-12" title="12"><span class="kw">instance</span> (<span class="dt">Encode</span> (a p), <span class="dt">Encode</span> (b p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> ((a <span class="fu">:*:</span> b) p) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-13" title="13">  encode (a <span class="fu">:*:</span> b) <span class="fu">=</span> (encode <span class="fu">@</span>(a p) a) <span class="fu">&lt;&gt;</span> <span class="st">&quot;, &quot;</span> <span class="fu">&lt;&gt;</span> (encode <span class="fu">@</span>(b p) b)</a>
+<a class="sourceLine" id="cb6-14" title="14"></a>
+<a class="sourceLine" id="cb6-15" title="15"><span class="kw">instance</span> (<span class="dt">Encode</span> t, <span class="dt">Selector</span> s) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">S</span> s (<span class="dt">K1</span> <span class="dt">R</span> t) p) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-16" title="16">  encode m<span class="fu">@</span>(<span class="dt">M1</span> (<span class="dt">K1</span> x)) <span class="fu">=</span> Text.pack (selName m) <span class="fu">&lt;&gt;</span> <span class="st">&quot; = &quot;</span> <span class="fu">&lt;&gt;</span> encode x</a></code></pre></div>
+<p>Now this <em>just works</em>. Trust me, I swear.</p>
+<p>Ok ok, this is all well and good, but let’s say we don’t like the <code>Encode Text</code> instance. It’s fine in most cases, but our <code>Rec</code> type needs to use a different instance. Do we have to give up on generic derivation and write our <code>Encode Rec</code> instance from scratch?</p>
+<p>Maybe not! Let’s play with an idea.</p>
+<p>Here’s the new <code>Text</code> instance we want to use. We’ll be resorting to the classic <em>newtype trick</em>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">newtype</span> <span class="dt">Uptext</span> <span class="fu">=</span> <span class="dt">Uptext</span> {<span class="ot"> unUptext ::</span> <span class="dt">Text</span> }</a>
+<a class="sourceLine" id="cb7-2" title="2"></a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Uptext</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb7-4" title="4">  encode <span class="fu">=</span> Text.toUpper</a></code></pre></div>
+<p>Yes, it’s contrived, but you really don’t want me going into the <em>actual</em> use case for this. It’s much messier and this is just easier to think about.</p>
+<p>With <code>DerivingVia</code>, we could possibly do something like this -</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">deriving</span> via <span class="dt">Encode</span> <span class="dt">Uptext</span> <span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Text</span></a></code></pre></div>
+<p>This would work, except - 1. It requires that an <code>Encode Text</code> instance does not already exist 2. Now everyone has to use our instance, and for our purposes we only want <code>Rec</code> to use it.</p>
+<p>Maybe we can somehow embed the instance we want to override directly into the deriving clause. Hmm, how about something like -</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
+<a class="sourceLine" id="cb9-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb9-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb9-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb9-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb9-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>)</a>
+<a class="sourceLine" id="cb9-7" title="7">      via <span class="dt">GenericEncode</span> <span class="dt">Rec</span></a>
+<a class="sourceLine" id="cb9-8" title="8">        <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a></code></pre></div>
+<p>Looks a little funny, but ignoring the clumsiness (and limitations), can this even work?</p>
+<p>First, let’s create some types to get this thing rolling -</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">newtype</span> a <span class="ot">`Using`</span> (<span class="ot">x ::</span> <span class="dt">Constraint</span>) <span class="fu">=</span> <span class="dt">Using</span> a</a>
+<a class="sourceLine" id="cb10-2" title="2">  <span class="kw">deriving</span> stock (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb10-3" title="3"></a>
+<a class="sourceLine" id="cb10-4" title="4"><span class="kw">data</span> a <span class="ot">`As`</span> b <span class="fu">=</span> <span class="dt">As</span></a>
+<a class="sourceLine" id="cb10-5" title="5">  <span class="kw">deriving</span> stock (<span class="dt">Show</span>)</a></code></pre></div>
+<p>So we’ll use <code>Using</code> as a way to embed our overriding constraint into the type of the value we want to encode, and <code>As</code> will be used to tell the instance derivation which instance should be replaced and by which.</p>
+<p>We can even use these types directly in the repl. Here’s the value we’ll want to be dealing with -</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="fu">%</span> ghci</a>
+<a class="sourceLine" id="cb11-2" title="2"><span class="fu">&gt;</span> <span class="fu">:</span>{</a>
+<a class="sourceLine" id="cb11-3" title="3">    <span class="dt">Using</span> <span class="fu">$</span> <span class="dt">GenericEncode</span> <span class="fu">$</span> <span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span></a>
+<a class="sourceLine" id="cb11-4" title="4"><span class="ot">      ::</span> <span class="dt">GenericEncode</span> <span class="dt">Rec</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a>
+<a class="sourceLine" id="cb11-5" title="5">  <span class="fu">:</span>}</a>
+<a class="sourceLine" id="cb11-6" title="6"><span class="dt">Using</span> (<span class="dt">GenericEncode</span> {unGenericEncode <span class="fu">=</span> <span class="dt">Rec</span> {foo <span class="fu">=</span> <span class="dv">12</span>, bar <span class="fu">=</span> <span class="st">&quot;hi&quot;</span>, baz <span class="fu">=</span> <span class="st">&quot;bye&quot;</span>}})</a></code></pre></div>
+<p>At this point, we can use virtually our same generic deriving machinery, just with <code>Using</code> sprinkled throughout to keep track of our overridden instances. I won’t copy pasta all of the boilerplate here (as it’s just uglier versions of the instances you’ve already seen). Instead, I’ll point out the most important bits.</p>
+<p>The “entry point” instance to our generic derivation is almost exactly the same as before, except, as mentioned, with <code>Using</code> stuff sprinkled in everywhere. We’re actually going to rip the <code>Using</code> constraint bits off of the passed in type and apply it to the generic representation <code>Rep a p</code>, and then keep applying it on each of the field selectors so we can pick the right instance.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">instance</span></a>
+<a class="sourceLine" id="cb12-2" title="2">  ( <span class="dt">Generic</span> a</a>
+<a class="sourceLine" id="cb12-3" title="3">  , <span class="dt">Encode</span> (<span class="dt">Rep</span> a p <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d))</a>
+<a class="sourceLine" id="cb12-4" title="4">  ) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">GenericEncode</span> a <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d)) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb12-5" title="5">  encode (<span class="dt">Using</span> x) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb12-6" title="6">    (encode <span class="fu">@</span>(<span class="dt">Rep</span> a p <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d)))</a>
+<a class="sourceLine" id="cb12-7" title="7">      <span class="fu">$</span> <span class="dt">Using</span> <span class="fu">@</span>(<span class="dt">Rep</span> a p) <span class="fu">@</span>(<span class="dt">Encode</span> (c <span class="ot">`As`</span> d))</a>
+<a class="sourceLine" id="cb12-8" title="8">      <span class="fu">$</span> from <span class="fu">@</span>a</a>
+<a class="sourceLine" id="cb12-9" title="9">      <span class="fu">$</span> unGenericEncode x</a></code></pre></div>
+<p>So aside from sprinkling in <code>Using</code> everywhere, we’ll need to change the instance that actually does the encoding for each field.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">instance</span> <span class="ot">{-# OVERLAPPING #-}</span></a>
+<a class="sourceLine" id="cb13-2" title="2">  ( <span class="dt">Encode</span> b</a>
+<a class="sourceLine" id="cb13-3" title="3">  , <span class="dt">Coercible</span> a b</a>
+<a class="sourceLine" id="cb13-4" title="4">  ) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (a <span class="ot">`Using`</span> <span class="dt">Encode</span> (a <span class="ot">`As`</span> b))</a>
+<a class="sourceLine" id="cb13-5" title="5">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb13-6" title="6">  encode (<span class="dt">Using</span> a) <span class="fu">=</span> encode <span class="fu">@</span>b (coerce a)</a></code></pre></div>
+<p>Now what we have is an instance that works for a given type <code>a</code> when we want to override it with the instance for type <code>b</code>. And of course, this only works if <code>a</code> is <code>Coercible</code> to <code>b</code>.</p>
+<p>We can even play with this directly!</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="st">&quot;hi&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
+<a class="sourceLine" id="cb14-2" title="2"><span class="st">&quot;HI&quot;</span></a></code></pre></div>
+<p>That’s actually neat on its own.</p>
+<p>Note that we need to make this an <code>OVERLAPPING</code> instance so we can default to a different instance when this one doesn’t apply. Leaving it as it is would give us this when using a non-<code>Text</code> type -</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
+<a class="sourceLine" id="cb15-2" title="2"><span class="fu">error:</span></a>
+<a class="sourceLine" id="cb15-3" title="3">    • <span class="dt">No</span> <span class="kw">instance</span> for (<span class="dt">Encode</span> (<span class="dt">Using</span> <span class="dt">Int</span> (<span class="dt">Encode</span> (<span class="dt">As</span> <span class="dt">Text</span> <span class="dt">Uptext</span>))))</a></code></pre></div>
+<p>Now we’ll define our “default” instance that works when the other doesn’t match -</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">instance</span> <span class="ot">{-# OVERLAPPABLE #-}</span></a>
+<a class="sourceLine" id="cb16-2" title="2">  (<span class="dt">Encode</span> c) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (c <span class="ot">`Using`</span> <span class="dt">Encode</span> (a <span class="ot">`As`</span> b))</a>
+<a class="sourceLine" id="cb16-3" title="3">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb16-4" title="4">  encode (<span class="dt">Using</span> c) <span class="fu">=</span> encode <span class="fu">@</span>c c</a></code></pre></div>
+<p>There’s actually a gotcha here, but I’ll leave that as an exercise for the reader.</p>
+<p>Moving blissfully along, now the following works -</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb17-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
+<a class="sourceLine" id="cb17-2" title="2"><span class="st">&quot;1&quot;</span></a></code></pre></div>
+<p>Ok, so now let’s review our previous deriving hackery -</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb18-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
+<a class="sourceLine" id="cb18-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb18-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb18-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb18-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb18-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>)</a>
+<a class="sourceLine" id="cb18-7" title="7">      via <span class="dt">GenericEncode</span> <span class="dt">Rec</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a></code></pre></div>
+<p>…but does it work?</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb19-1" title="1"><span class="fu">&gt;</span> encode <span class="fu">$</span> <span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span></a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="st">&quot;foo = 12, bar = HI, baz = BYE&quot;</span></a></code></pre></div>
+<p>Eureka! It does!</p>
+<p>Is any of this practical? Maybe, maybe not. One important limitation here is that you need to write your generic deriving machinery to deal with this. Also, this implementation doesn’t deal with <em>multiple</em> overrides, it only supports one. However, this could likely be solved without too much effort (type-level lists are the first to come to mind.</p>
+<p>But I think this is a good starting point. From here, we can potentially refine this approach and make it a bit more versatile. It would be pretty exciting to modify it in such a way that <em>doesn’t</em> require the deriving machinery to be aware of our <code>Using</code> and <code>As</code> types. I have some ideas on how to make this a reality, but there’s more experimentin’ to do first!</p>
+<p>The actual working code for this post can be found <a href="https://github.com/carymrobbins/scoped-instances">here</a>.</p>
+    </div>
+  </div>
+  <div id="disqus_thread"></div>
+<script>
+var disqus_config = function () {
+this.page.url = 'http://caryrobbins.com' + '/dev/overriding-type-class-instances/index.html';
+this.page.identifier = '/dev/overriding-type-class-instances/index.html';
+};
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://caryrobbins-com.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2018
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
