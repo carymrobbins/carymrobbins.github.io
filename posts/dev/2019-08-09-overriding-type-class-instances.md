@@ -1,5 +1,5 @@
 ---
-title: Overriding Type Class Instances
+title: Overriding Type Class Instances (Part 1)
 ---
 
 It's well known in the Haskell world that type class instances _cannot_
@@ -271,7 +271,7 @@ Is any of this practical? Maybe, maybe not. One important limitation here is tha
 you need to write your generic deriving machinery to deal with this. Also, this
 implementation doesn't deal with _multiple_ overrides, it only supports one.
 However, this could likely be solved without too much effort (type-level lists
-are the first to come to mind.
+are the first to come to mind).
 
 But I think this is a good starting point. From here, we can potentially refine this
 approach and make it a bit more versatile. It would be pretty exciting to
