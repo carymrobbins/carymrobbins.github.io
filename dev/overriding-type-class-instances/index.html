@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Overriding Type Class Instances</title>
+    <title>Overriding Type Class Instances (Part 1)</title>
 
     <!-- components -->
     <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
@@ -45,7 +45,7 @@
       <div class="container">
   <div class="row">
     <div class="col-md-12">
-      <h1>Overriding Type Class Instances</h1>
+      <h1>Overriding Type Class Instances (Part 1)</h1>
     </div>
     <div class="col-md-12">
       <small>August  9, 2019</small>
@@ -186,7 +186,7 @@
 <div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb19-1" title="1"><span class="fu">&gt;</span> encode <span class="fu">$</span> <span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span></a>
 <a class="sourceLine" id="cb19-2" title="2"><span class="st">&quot;foo = 12, bar = HI, baz = BYE&quot;</span></a></code></pre></div>
 <p>Eureka! It does!</p>
-<p>Is any of this practical? Maybe, maybe not. One important limitation here is that you need to write your generic deriving machinery to deal with this. Also, this implementation doesn’t deal with <em>multiple</em> overrides, it only supports one. However, this could likely be solved without too much effort (type-level lists are the first to come to mind.</p>
+<p>Is any of this practical? Maybe, maybe not. One important limitation here is that you need to write your generic deriving machinery to deal with this. Also, this implementation doesn’t deal with <em>multiple</em> overrides, it only supports one. However, this could likely be solved without too much effort (type-level lists are the first to come to mind).</p>
 <p>But I think this is a good starting point. From here, we can potentially refine this approach and make it a bit more versatile. It would be pretty exciting to modify it in such a way that <em>doesn’t</em> require the deriving machinery to be aware of our <code>Using</code> and <code>As</code> types. I have some ideas on how to make this a reality, but there’s more experimentin’ to do first!</p>
 <p>The actual working code for this post can be found <a href="https://github.com/carymrobbins/scoped-instances">here</a>.</p>
     </div>
