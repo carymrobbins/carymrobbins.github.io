@@ -71,7 +71,7 @@
 <a class="sourceLine" id="cb1-12" title="12">            '[ <span class="dt">String</span> <span class="ot">`As`</span> <span class="dt">CharArray</span></a>
 <a class="sourceLine" id="cb1-13" title="13">             , <span class="st">&quot;baz&quot;</span> <span class="ot">`As`</span> <span class="dt">Uptext</span></a>
 <a class="sourceLine" id="cb1-14" title="14">             ]</a></code></pre></div>
-<p>The idea is that we can piggyback off of the existing generic machinery used by <code>ToJSON</code>. We will use <code>DerivingVia</code> to deriving an instance of <code>ToJSON MyRec</code> via <code>Override MyRec</code> with a type-level list specifying the type substitutions to make.</p>
+<p>The idea is that we can piggyback off of the existing generic machinery used by <code>ToJSON</code>. We will use <code>DerivingVia</code> to derive an instance of <code>ToJSON MyRec</code> via <code>Override MyRec</code> with a type-level list specifying the type substitutions to make.</p>
 <p>In our example, we are saying that when deriving a <code>ToJSON MyRec</code> instance, for its fields, instead of <code>ToJSON String</code> use <code>ToJSON CharArray</code> and, for the <code>baz</code> field, instead of <code>ToJSON Text</code> use <code>ToJSON Uptext</code>. These alternate instances will be provided via newtype wrappers, something we’re likely all familiar with at this point.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">newtype</span> <span class="dt">Uptext</span> <span class="fu">=</span> <span class="dt">Uptext</span> {<span class="ot"> unUptext ::</span> <span class="dt">Text</span> }</a>
 <a class="sourceLine" id="cb2-2" title="2"></a>
@@ -97,7 +97,7 @@
 <p>Ok, now on to making this dream come true.</p>
 <h2 id="the-approach">The Approach</h2>
 <p>How can we possibly make this work for any type class? Well let us consider how generic derivation works in the first place.</p>
-<p>The <code>ToJSON</code> type class delegates to <code>genericToJSON</code> for its defaullt implementation -</p>
+<p>The <code>ToJSON</code> type class delegates to <code>genericToJSON</code> for its default implementation -</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="ot">toJSON ::</span> a <span class="ot">-&gt;</span> <span class="dt">Value</span></a>
 <a class="sourceLine" id="cb5-2" title="2">toJSON <span class="fu">=</span> genericToJSON defaultOptions</a></code></pre></div>
 <p>It’s not too important to know the implementation of <code>genericToJSON</code> for our uses, so we’ll just worry about its type signature.</p>
@@ -433,7 +433,7 @@ s.setAttribute('data-timestamp', +new Date());
             <a href="../../">Home</a>
           </div>
           <div class="col-md-6 text-right">
-            Copyright © 2018
+            Copyright © 2020
           </div>
         </div>
       </div>

@@ -54,10 +54,9 @@
   <hr />
   <div class="row">
     <div class="col-md-12">
-      <p>It’s well known in the Haskell world that type class instances <em>cannot</em> be overridden. When you have an instance in scope, you are stuck with it. Is this a feature? Is this a bug? Maybe either depending on the problem you are facing. I have my own opinions, but let me lay out the case for wanting to be able to override instances.</p>
-<div class="alert alert-warning">
-<p><strong>Disclaimer:</strong> This idea is quite experimental and not entirely fleshed out. Consider this as purely a proof-of-concept that is clearly lacking features and could potentially be refined and simplified. There’s also the chance that this has already been invented, possibly in a better form, I just have yet to come across it. That being said, <strong>you have been warned</strong>.</p>
-</div>
+      <p><em>Note that this is now part of a series. When you are done here consider reading <a href="../overriding-type-class-instances-2/">part 2</a> where we extend this technique to support overriding instances for any type class derivable with <code>GHC.Generics</code>.</em></p>
+<hr />
+<p>It’s well known in the Haskell world that type class instances <em>cannot</em> be overridden. When you have an instance in scope, you are stuck with it. Is this a feature? Is this a bug? Maybe either depending on the problem you are facing. I have my own opinions, but let me lay out the case for wanting to be able to override instances.</p>
 <p>Consider the following <em>very simple</em> type class for encoding values to <code>Text</code> -</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">class</span> <span class="dt">Encode</span> a <span class="kw">where</span></a>
 <a class="sourceLine" id="cb1-2" title="2"><span class="ot">  encode ::</span> a <span class="ot">-&gt;</span> <span class="dt">Text</span></a></code></pre></div>
@@ -189,6 +188,8 @@
 <p>Is any of this practical? Maybe, maybe not. One important limitation here is that you need to write your generic deriving machinery to deal with this. Also, this implementation doesn’t deal with <em>multiple</em> overrides, it only supports one. However, this could likely be solved without too much effort (type-level lists are the first to come to mind).</p>
 <p>But I think this is a good starting point. From here, we can potentially refine this approach and make it a bit more versatile. It would be pretty exciting to modify it in such a way that <em>doesn’t</em> require the deriving machinery to be aware of our <code>Using</code> and <code>As</code> types. I have some ideas on how to make this a reality, but there’s more experimentin’ to do first!</p>
 <p>The actual working code for this post can be found <a href="https://github.com/carymrobbins/scoped-instances">here</a>.</p>
+<h2 id="update-3252020">Update 3/25/2020</h2>
+<p>Want to see this approach taken a bit further? Check out <a href="../overriding-type-class-instances-2/">part 2</a> where we extend this technique to support overriding instances for any type class derivable with <code>GHC.Generics</code>.</p>
     </div>
   </div>
   <div id="disqus_thread"></div>
@@ -218,7 +219,7 @@ s.setAttribute('data-timestamp', +new Date());
             <a href="../../">Home</a>
           </div>
           <div class="col-md-6 text-right">
-            Copyright © 2018
+            Copyright © 2020
           </div>
         </div>
       </div>
