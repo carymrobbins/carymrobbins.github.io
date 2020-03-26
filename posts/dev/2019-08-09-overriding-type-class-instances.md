@@ -2,19 +2,19 @@
 title: Overriding Type Class Instances (Part 1)
 ---
 
+_Note that this is now part of a series. When you are done here
+consider reading
+[part 2](../overriding-type-class-instances-2/)
+where we extend this technique to support overriding instances for any
+type class derivable with `GHC.Generics`._
+
+----------------------------------
+
 It's well known in the Haskell world that type class instances _cannot_
 be overridden. When you have an instance in scope, you are stuck with
 it. Is this a feature? Is this a bug? Maybe either depending on the
 problem you are facing. I have my own opinions, but let me lay out
 the case for wanting to be able to override instances.
-
-<div class="alert alert-warning">
-**Disclaimer:** This idea is quite experimental and not entirely fleshed
-out. Consider this as purely a proof-of-concept that is clearly lacking
-features and could potentially be refined and simplified. There's also the
-chance that this has already been invented, possibly in a better form, I just
-have yet to come across it. That being said, **you have been warned**.
-</div>
 
 Consider the following _very simple_ type class for encoding
 values to `Text` -
@@ -280,3 +280,10 @@ aware of our `Using` and `As` types. I have some ideas on how to make this a
 reality, but there's more experimentin' to do first!
 
 The actual working code for this post can be found [here](https://github.com/carymrobbins/scoped-instances).
+
+## Update 3/25/2020
+
+Want to see this approach taken a bit further? Check out
+[part 2](../overriding-type-class-instances-2/)
+where we extend this technique to support overriding instances for any
+type class derivable with `GHC.Generics`.

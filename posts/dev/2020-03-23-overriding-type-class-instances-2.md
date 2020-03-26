@@ -33,7 +33,7 @@ data MyRec = MyRec
 ```
 
 The idea is that we can piggyback off of the existing generic machinery
-used by `ToJSON`. We will use `DerivingVia` to deriving an instance of
+used by `ToJSON`. We will use `DerivingVia` to derive an instance of
 `ToJSON MyRec` via `Override MyRec` with a type-level list specifying the
 type substitutions to make.
 
@@ -83,7 +83,7 @@ Ok, now on to making this dream come true.
 How can we possibly make this work for any type class? Well let us consider
 how generic derivation works in the first place.
 
-The `ToJSON` type class delegates to `genericToJSON` for its defaullt
+The `ToJSON` type class delegates to `genericToJSON` for its default
 implementation -
 
 ```haskell
