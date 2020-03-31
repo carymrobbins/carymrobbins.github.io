@@ -11,7 +11,7 @@ as little boilerplate as possible.
 
 ## Spoiler Alert
 
-The goal I set out to acheive was to end up with the following syntax.
+The goal I set out to achieve was to end up with the following syntax.
 Note that this allows us to override type class instances by
 type or field name.
 
@@ -420,7 +420,7 @@ Now let's print out its JSON representation.
 Nice, it works!
 
 Let's explore the possibilities for a moment using a function for easily
-creating a overrides on the fly.
+creating overrides on the fly.
 
 ```haskell
 override :: a -> proxy xs -> Override a xs
@@ -552,7 +552,7 @@ overrides _first_ and type overrides _last_.
 }
 ```
 
-For those in which "just get it right" is not an acceptible solution, we could
+For those in which "just get it right" is not an acceptable solution, we could
 devise some sort of `ValidateOverride` type class that, upon attempting to do
 any sort of overriding, checks for situations like this and reports them as
 compiler errors. Or we could specialize the `Using` type family to prefer
@@ -560,12 +560,12 @@ fields over types in overrides.
 
 However, I think it's always a good idea to test your codecs and instances
 anyway, especially when doing any sort of specialization, so until such
-machinery were implemented this is probably an acceptible gotcha to be aware of.
+machinery were implemented this is probably an acceptable gotcha to be aware of.
 
 ## That's it for now
 
 There's still likely more exploration and work to be done in this area, but so
 far I've packaged up a workable library with tests and more examples:
-[generic-override](https://github.com/carymrobbins/generic-override/).
+[generic-override](https://github.com/estatico/generic-override/).
 
 The library has not been officially published yet, but hopefully will be soon.
