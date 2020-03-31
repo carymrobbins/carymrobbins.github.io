@@ -568,9 +568,14 @@ There's still likely more exploration and work to be done in this area, but so
 far I've packaged this up into a workable library with tests and more examples.
 
 **GitHub**
+
 * [generic-override](https://github.com/estatico/generic-override/)
-* `generic-override-aeson` is included in the above repo.
+
+* [generic-override-aeson](https://github.com/estatico/generic-override/tree/master/aeson)
+  is included in the above repo.
 
 **Hackage**
+
 * [generic-override](https://hackage.haskell.org/package/generic-override)
+
 * [generic-override-aeson](https://hackage.haskell.org/package/generic-override-aeson)
