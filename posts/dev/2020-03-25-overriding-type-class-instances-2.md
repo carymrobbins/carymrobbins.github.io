@@ -565,7 +565,12 @@ machinery were implemented this is probably an acceptable gotcha to be aware of.
 ## That's it for now
 
 There's still likely more exploration and work to be done in this area, but so
-far I've packaged up a workable library with tests and more examples:
-[generic-override](https://github.com/estatico/generic-override/).
+far I've packaged this up into a workable library with tests and more examples.
 
-The library has not been officially published yet, but hopefully will be soon.
+**GitHub**
+* [generic-override](https://github.com/estatico/generic-override/)
+* `generic-override-aeson` is included in the above repo.
+
+**Hackage**
+* [generic-override](https://hackage.haskell.org/package/generic-override)
+* [generic-override-aeson](https://hackage.haskell.org/package/generic-override-aeson)
