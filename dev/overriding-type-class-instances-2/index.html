@@ -56,7 +56,7 @@
     <div class="col-md-12">
       <p>As we discovered in <a href="../overriding-type-class-instances/">part 1</a>, we can build some infrastructure to override instances for a type class we’ve created. But what if we want to do this for an existing type class? In most cases, we likely won’t be able to tamper with the source code to inject our override machinery. Furthermore, we’d like to be able to achieve this with as little boilerplate as possible.</p>
 <h2 id="spoiler-alert">Spoiler Alert</h2>
-<p>The goal I set out to acheive was to end up with the following syntax. Note that this allows us to override type class instances by type or field name.</p>
+<p>The goal I set out to achieve was to end up with the following syntax. Note that this allows us to override type class instances by type or field name.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">import</span> <span class="dt">Data.Aeson</span> (<span class="dt">ToJSON</span>)</a>
 <a class="sourceLine" id="cb1-2" title="2"><span class="kw">import</span> <span class="dt">Data.Override</span> (<span class="dt">Override</span>(<span class="dt">Override</span>), <span class="dt">As</span>)</a>
 <a class="sourceLine" id="cb1-3" title="3"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Override</span> <span class="kw">as</span> <span class="dt">Override</span></a>
@@ -310,7 +310,7 @@
 <a class="sourceLine" id="cb21-10" title="10">    ]</a>
 <a class="sourceLine" id="cb21-11" title="11">}</a></code></pre></div>
 <p>Nice, it works!</p>
-<p>Let’s explore the possibilities for a moment using a function for easily creating a overrides on the fly.</p>
+<p>Let’s explore the possibilities for a moment using a function for easily creating overrides on the fly.</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb22-1" title="1"><span class="ot">override ::</span> a <span class="ot">-&gt;</span> proxy xs <span class="ot">-&gt;</span> <span class="dt">Override</span> a xs</a>
 <a class="sourceLine" id="cb22-2" title="2">override a _ <span class="fu">=</span> <span class="dt">Override</span> a</a></code></pre></div>
 <p>This allows us to specify ad hoc overrides as a <code>proxy</code> and summon the appropriate instances as such. Let’s try it out!</p>
@@ -399,10 +399,10 @@
 <a class="sourceLine" id="cb32-4" title="4">    <span class="st">&quot;baz&quot;</span><span class="fu">:</span> <span class="st">&quot;BYE&quot;</span>,</a>
 <a class="sourceLine" id="cb32-5" title="5">    <span class="st">&quot;bar&quot;</span><span class="fu">:</span> <span class="st">&quot;HI&quot;</span></a>
 <a class="sourceLine" id="cb32-6" title="6">}</a></code></pre></div>
-<p>For those in which “just get it right” is not an acceptible solution, we could devise some sort of <code>ValidateOverride</code> type class that, upon attempting to do any sort of overriding, checks for situations like this and reports them as compiler errors. Or we could specialize the <code>Using</code> type family to prefer fields over types in overrides.</p>
-<p>However, I think it’s always a good idea to test your codecs and instances anyway, especially when doing any sort of specialization, so until such machinery were implemented this is probably an acceptible gotcha to be aware of.</p>
+<p>For those in which “just get it right” is not an acceptable solution, we could devise some sort of <code>ValidateOverride</code> type class that, upon attempting to do any sort of overriding, checks for situations like this and reports them as compiler errors. Or we could specialize the <code>Using</code> type family to prefer fields over types in overrides.</p>
+<p>However, I think it’s always a good idea to test your codecs and instances anyway, especially when doing any sort of specialization, so until such machinery were implemented this is probably an acceptable gotcha to be aware of.</p>
 <h2 id="thats-it-for-now">That’s it for now</h2>
-<p>There’s still likely more exploration and work to be done in this area, but so far I’ve packaged up a workable library with tests and more examples: <a href="https://github.com/carymrobbins/generic-override/">generic-override</a>.</p>
+<p>There’s still likely more exploration and work to be done in this area, but so far I’ve packaged up a workable library with tests and more examples: <a href="https://github.com/estatico/generic-override/">generic-override</a>.</p>
 <p>The library has not been officially published yet, but hopefully will be soon.</p>
     </div>
   </div>
