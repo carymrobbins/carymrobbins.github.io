@@ -402,8 +402,9 @@
 <p>For those in which “just get it right” is not an acceptable solution, we could devise some sort of <code>ValidateOverride</code> type class that, upon attempting to do any sort of overriding, checks for situations like this and reports them as compiler errors. Or we could specialize the <code>Using</code> type family to prefer fields over types in overrides.</p>
 <p>However, I think it’s always a good idea to test your codecs and instances anyway, especially when doing any sort of specialization, so until such machinery were implemented this is probably an acceptable gotcha to be aware of.</p>
 <h2 id="thats-it-for-now">That’s it for now</h2>
-<p>There’s still likely more exploration and work to be done in this area, but so far I’ve packaged up a workable library with tests and more examples: <a href="https://github.com/estatico/generic-override/">generic-override</a>.</p>
-<p>The library has not been officially published yet, but hopefully will be soon.</p>
+<p>There’s still likely more exploration and work to be done in this area, but so far I’ve packaged this up into a workable library with tests and more examples.</p>
+<p><strong>GitHub</strong> * <a href="https://github.com/estatico/generic-override/">generic-override</a> * <code>generic-override-aeson</code> is included in the above repo.</p>
+<p><strong>Hackage</strong> * <a href="https://hackage.haskell.org/package/generic-override">generic-override</a> * <a href="https://hackage.haskell.org/package/generic-override-aeson">generic-override-aeson</a></p>
     </div>
   </div>
   <div id="disqus_thread"></div>
