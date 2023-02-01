@@ -186,5 +186,5 @@ ERROR: java.lang.RuntimeException: boom
 ```
 
 No need for any special error handling required by those constructing tasks,
-stateful or otherwise; any `Task` can be properly handled this way at the very end when we actually run
-our `StatefulTask`.
+stateful or otherwise; any `Task` can be properly handled this way at the very
+end when we actually run our `StatefulTask`.
