@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Recovering from Errors in the State monad</title>
+
+    <!-- components -->
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+
+    <!-- assets -->
+    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
+
+  </head>
+  <body>
+    <nav id="header" class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="row">
+          <div id="logo" class="col-md-6">
+            <a href="../../">cary robbins</a>
+          </div>
+          <div id="social" class="col-md-6">
+            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
+              <span class="fa fa-github"></span>
+            </a>
+            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
+              <span class="fa fa-linkedin"></span>
+            </a>
+            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
+              <span class="fa fa-twitter"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Recovering from Errors in the State monad</h1>
+    </div>
+    <div class="col-md-12">
+      <small>January 31, 2023</small>
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-md-12">
+      <p>I recently encountered an issue where we needed to log information about a failed task to the database but this information is accumulated over the life of the task. At first I thought that layering in the <code>State</code> monad would solve our issue.</p>
+<p>The problem with the <code>State</code> monad in this case is that when an error occurs it’s harder to recover the state. The <code>State</code> monad should be used with an immutable state which is “copied” each time it changes, but if an error occurs you can’t really peek to see what it was at the time of failure.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">import</span> cats.<span class="fu">data</span>.<span class="fu">StateT</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">import</span> monix.<span class="fu">eval</span>.<span class="fu">Task</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">import</span> monix.<span class="fu">execution</span>.<span class="fu">Scheduler</span>.<span class="fu">Implicits</span>.<span class="fu">global</span></a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co">/**</span> The state of our task<span class="co">;</span> keeps track of the <span class="co">`</span>sum<span class="co">`</span> as we <span class="co">`</span>add<span class="co">`</span> to it<span class="co">. */</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">MyState</span>(sum: Int)</a>
+<a class="sourceLine" id="cb1-7" title="7"></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">/**</span> Handy type alias representing our Task combined with the State monad<span class="co">. */</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="kw">type</span> StatefulTask[A] = StateT[Task, MyState, A]</a>
+<a class="sourceLine" id="cb1-10" title="10"></a>
+<a class="sourceLine" id="cb1-11" title="11"><span class="co">// Some helper functions for producing `StatefulTask`s.</span></a>
+<a class="sourceLine" id="cb1-12" title="12"><span class="kw">def</span> pure[A](a: A): StatefulTask[A] = StateT.<span class="fu">pure</span>(a)</a>
+<a class="sourceLine" id="cb1-13" title="13"><span class="kw">def</span> <span class="fu">modify</span>(f: MyState =&gt; MyState): StatefulTask[Unit] = StateT.<span class="fu">modify</span>(f)</a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="kw">def</span> <span class="fu">add</span>(n: Int): StatefulTask[Unit] = <span class="fu">modify</span>(s =&gt; s.<span class="fu">copy</span>(sum = s.<span class="fu">sum</span> + n))</a>
+<a class="sourceLine" id="cb1-15" title="15"><span class="kw">def</span> get: StatefulTask[MyState] = StateT.<span class="fu">get</span></a>
+<a class="sourceLine" id="cb1-16" title="16"></a>
+<a class="sourceLine" id="cb1-17" title="17"><span class="co">// An example task in which an exception occurs. We want to log the state</span></a>
+<a class="sourceLine" id="cb1-18" title="18"><span class="co">// along with the error, but as you'll see this is impossible by the</span></a>
+<a class="sourceLine" id="cb1-19" title="19"><span class="co">// time the exception can be handled.</span></a>
+<a class="sourceLine" id="cb1-20" title="20"><span class="kw">val</span> statefulTask: StatefulTask[Int] = <span class="kw">for</span> {</a>
+<a class="sourceLine" id="cb1-21" title="21">  a &lt;- <span class="fu">pure</span>(<span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb1-22" title="22">  _ &lt;- <span class="fu">add</span>(a)</a>
+<a class="sourceLine" id="cb1-23" title="23">  b &lt;- StateT.<span class="fu">liftF</span>(Task.<span class="fu">pure</span>(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb1-24" title="24">  _ &lt;- <span class="fu">add</span>(b)</a>
+<a class="sourceLine" id="cb1-25" title="25">  c &lt;- StateT.<span class="fu">liftF</span>(Task.<span class="fu">eval</span>[Int](<span class="kw">throw</span> <span class="kw">new</span> RuntimeException(<span class="st">&quot;boom&quot;</span>)))</a>
+<a class="sourceLine" id="cb1-26" title="26">  _ &lt;- <span class="fu">add</span>(c)</a>
+<a class="sourceLine" id="cb1-27" title="27">  state &lt;- get</a>
+<a class="sourceLine" id="cb1-28" title="28">} <span class="kw">yield</span> state.<span class="fu">sum</span></a>
+<a class="sourceLine" id="cb1-29" title="29"></a>
+<a class="sourceLine" id="cb1-30" title="30"><span class="co">// Breaking down each step and its type for clear demonstration.</span></a>
+<a class="sourceLine" id="cb1-31" title="31"><span class="kw">val</span> task: Task[(MyState, Int)] = statefulTask.<span class="fu">run</span>(<span class="fu">MyState</span>(<span class="dv">0</span>))</a>
+<a class="sourceLine" id="cb1-32" title="32"><span class="kw">val</span> attempt: Task[Either[Throwable, (MyState, Int)]] = task.<span class="fu">attempt</span></a>
+<a class="sourceLine" id="cb1-33" title="33"><span class="kw">val</span> result: Either[Throwable, (MyState, Int)] = attempt.<span class="fu">runSyncUnsafe</span>()</a>
+<a class="sourceLine" id="cb1-34" title="34">result.<span class="fu">fold</span>(</a>
+<a class="sourceLine" id="cb1-35" title="35">  throwable =&gt; <span class="fu">println</span>(s<span class="st">&quot;ERROR: $throwable&quot;</span>),</a>
+<a class="sourceLine" id="cb1-36" title="36">  { <span class="kw">case</span> (state, sum) =&gt; <span class="fu">println</span>(s<span class="st">&quot;STATE: $state; SUM: $sum&quot;</span>) },</a>
+<a class="sourceLine" id="cb1-37" title="37">)</a></code></pre></div>
+<p>The result of this is -</p>
+<pre><code>ERROR: java.lang.RuntimeException: boom</code></pre>
+<p>As you can see, in the <code>throwable</code> case, we don’t have access to <code>MyState</code>. So if an error occurs, we’re stuck out.</p>
+<p>One step in the right direction could be to using <code>EitherT</code> around <code>StateT</code> so the state can be recovered -</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">import</span> cats.<span class="fu">data</span>.{EitherT, StateT}</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="kw">import</span> monix.<span class="fu">eval</span>.<span class="fu">Task</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">import</span> monix.<span class="fu">execution</span>.<span class="fu">Scheduler</span>.<span class="fu">Implicits</span>.<span class="fu">global</span></a>
+<a class="sourceLine" id="cb3-4" title="4"></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">MyState</span>(sum: Int)</a>
+<a class="sourceLine" id="cb3-6" title="6"></a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="co">// Defining `Internal` to avoid the need for a type lambda.</span></a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="kw">type</span> Internal[A] = StateT[Task, MyState, A]</a>
+<a class="sourceLine" id="cb3-9" title="9"><span class="kw">type</span> StatefulTask[A] = EitherT[Internal, Throwable, A]</a>
+<a class="sourceLine" id="cb3-10" title="10"></a>
+<a class="sourceLine" id="cb3-11" title="11"><span class="kw">def</span> pure[A](a: A): StatefulTask[A] = EitherT.<span class="fu">pure</span>(a)</a>
+<a class="sourceLine" id="cb3-12" title="12"><span class="kw">def</span> <span class="fu">modify</span>(f: MyState =&gt; MyState): StatefulTask[Unit] = EitherT.<span class="fu">liftF</span>(StateT.<span class="fu">modify</span>(f))</a>
+<a class="sourceLine" id="cb3-13" title="13"><span class="kw">def</span> <span class="fu">add</span>(n: Int): StatefulTask[Unit] = <span class="fu">modify</span>(s =&gt; s.<span class="fu">copy</span>(sum = s.<span class="fu">sum</span> + n))</a>
+<a class="sourceLine" id="cb3-14" title="14"><span class="kw">def</span> get: StatefulTask[MyState] = EitherT.<span class="fu">liftF</span>(StateT.<span class="fu">get</span>)</a>
+<a class="sourceLine" id="cb3-15" title="15"></a>
+<a class="sourceLine" id="cb3-16" title="16"><span class="co">/**</span> Lifts a vanilla <span class="co">`</span>Task<span class="co">`</span> through both <span class="co">`</span>StateT<span class="co">`</span> and <span class="co">`</span>EitherT<span class="co">`. */</span></a>
+<a class="sourceLine" id="cb3-17" title="17"><span class="kw">def</span> liftTask[A](task: Task[A]): StatefulTask[A] = EitherT.<span class="fu">liftF</span>(StateT.<span class="fu">liftF</span>(task))</a>
+<a class="sourceLine" id="cb3-18" title="18"></a>
+<a class="sourceLine" id="cb3-19" title="19"><span class="co">// Same example as before.</span></a>
+<a class="sourceLine" id="cb3-20" title="20"><span class="kw">val</span> statefulTask: StatefulTask[Int] = <span class="kw">for</span> {</a>
+<a class="sourceLine" id="cb3-21" title="21">  a &lt;- <span class="fu">pure</span>(<span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb3-22" title="22">  _ &lt;- <span class="fu">add</span>(a)</a>
+<a class="sourceLine" id="cb3-23" title="23">  b &lt;- <span class="fu">liftTask</span>(Task.<span class="fu">pure</span>(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb3-24" title="24">  _ &lt;- <span class="fu">add</span>(b)</a>
+<a class="sourceLine" id="cb3-25" title="25">  c &lt;- <span class="fu">liftTask</span>(Task.<span class="fu">eval</span>[Int](<span class="kw">throw</span> <span class="kw">new</span> RuntimeException(<span class="st">&quot;boom&quot;</span>)))</a>
+<a class="sourceLine" id="cb3-26" title="26">  _ &lt;- <span class="fu">add</span>(c)</a>
+<a class="sourceLine" id="cb3-27" title="27">  state &lt;- get</a>
+<a class="sourceLine" id="cb3-28" title="28">} <span class="kw">yield</span> state.<span class="fu">sum</span></a>
+<a class="sourceLine" id="cb3-29" title="29"></a>
+<a class="sourceLine" id="cb3-30" title="30"><span class="kw">val</span> stateT: StateT[Task, MyState, Either[Throwable, Int]] = statefulTask.<span class="fu">value</span></a>
+<a class="sourceLine" id="cb3-31" title="31"><span class="kw">val</span> task: Task[(MyState, Either[Throwable, Int])] = stateT.<span class="fu">run</span>(<span class="fu">MyState</span>(<span class="dv">0</span>))</a>
+<a class="sourceLine" id="cb3-32" title="32"><span class="kw">val</span> (state, result) = task.<span class="fu">runSyncUnsafe</span>()</a>
+<a class="sourceLine" id="cb3-33" title="33"><span class="fu">println</span>(s<span class="st">&quot;STATE: $state&quot;</span>)</a>
+<a class="sourceLine" id="cb3-34" title="34">result.<span class="fu">fold</span>(</a>
+<a class="sourceLine" id="cb3-35" title="35">  throwable =&gt; <span class="fu">println</span>(s<span class="st">&quot;ERROR: $throwable&quot;</span>),</a>
+<a class="sourceLine" id="cb3-36" title="36">  sum =&gt; <span class="fu">println</span>(s<span class="st">&quot;SUM: $sum&quot;</span>),</a>
+<a class="sourceLine" id="cb3-37" title="37">)</a></code></pre></div>
+<p>However, the problem here is that the <code>RuntimeException</code> gets thrown from inside the <code>Task</code> and does not propagate to the <code>EitherT</code>, so we still lose the state!</p>
+<pre><code>java.lang.RuntimeException: boom
+  at $anonfun$statefulTask$5(&lt;console&gt;:6)
+  ... 16 elided</code></pre>
+<p>To get around this, we <strong>MUST</strong> ensure that any <code>Task</code> that gets executed uses <code>.attempt</code> so its exceptions are captured by the <code>EitherT</code> -</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">def</span> liftTask[A](task: Task[A]): StatefulTask[A] = <span class="fu">EitherT</span>(StateT.<span class="fu">liftF</span>(task.<span class="fu">attempt</span>))</a></code></pre></div>
+<p>Then we get the following -</p>
+<pre><code>STATE: MyState(3)
+ERROR: java.lang.RuntimeException: boom</code></pre>
+<p>However, this is extremely easy to mess up. If you have one stray task where you haven’t totally shaken the error out, you’ll lose your state. This is precisely what happened in the prior example. Any <code>Task</code> that is to be eventually turned into a <code>StatefulTask</code> at some point needs to wrap it in our special <code>liftTask</code> function. It requires extreme programmer diligence and thus is something that will inevitably go wrong.</p>
+<p>For this reason many in the Haskell world prefer using <code>ReaderT</code> over an <code>IORef</code> which contains a mutable reference. That’s essentially what we’re doing in this next example, except in Scala we don’t need <code>IORef</code> and can just rely on mutable fields.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">import</span> cats.<span class="fu">data</span>.<span class="fu">ReaderT</span></a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw">import</span> monix.<span class="fu">eval</span>.<span class="fu">Task</span></a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="kw">import</span> monix.<span class="fu">execution</span>.<span class="fu">Scheduler</span>.<span class="fu">Implicits</span>.<span class="fu">global</span></a>
+<a class="sourceLine" id="cb7-4" title="4"></a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> <span class="fu">MyState</span>(<span class="kw">var</span> sum: Int)</a>
+<a class="sourceLine" id="cb7-6" title="6"></a>
+<a class="sourceLine" id="cb7-7" title="7"><span class="kw">type</span> StatefulTask[A] = ReaderT[Task, MyState, A]</a>
+<a class="sourceLine" id="cb7-8" title="8"></a>
+<a class="sourceLine" id="cb7-9" title="9"><span class="kw">def</span> pure[A](a: A): StatefulTask[A] = ReaderT.<span class="fu">pure</span>(a)</a>
+<a class="sourceLine" id="cb7-10" title="10"><span class="kw">def</span> <span class="fu">modify</span>(f: MyState =&gt; Unit): StatefulTask[Unit] = <span class="fu">ReaderT</span>(s =&gt; Task.<span class="fu">pure</span>(<span class="fu">f</span>(s)))</a>
+<a class="sourceLine" id="cb7-11" title="11"><span class="kw">def</span> <span class="fu">add</span>(n: Int): StatefulTask[Unit] = <span class="fu">modify</span>(s =&gt; s.<span class="fu">sum</span> += n)</a>
+<a class="sourceLine" id="cb7-12" title="12"><span class="kw">def</span> get: StatefulTask[MyState] = ReaderT.<span class="fu">ask</span></a>
+<a class="sourceLine" id="cb7-13" title="13"></a>
+<a class="sourceLine" id="cb7-14" title="14"><span class="kw">def</span> liftTask[A](task: Task[A]): StatefulTask[A] = ReaderT.<span class="fu">liftF</span>(task)</a>
+<a class="sourceLine" id="cb7-15" title="15"></a>
+<a class="sourceLine" id="cb7-16" title="16"><span class="kw">val</span> statefulTask: StatefulTask[Int] = <span class="kw">for</span> {</a>
+<a class="sourceLine" id="cb7-17" title="17">  a &lt;- <span class="fu">pure</span>(<span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb7-18" title="18">  _ &lt;- <span class="fu">add</span>(a)</a>
+<a class="sourceLine" id="cb7-19" title="19">  b &lt;- <span class="fu">liftTask</span>(Task.<span class="fu">pure</span>(<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb7-20" title="20">  _ &lt;- <span class="fu">add</span>(b)</a>
+<a class="sourceLine" id="cb7-21" title="21">  c &lt;- <span class="fu">liftTask</span>(</a>
+<a class="sourceLine" id="cb7-22" title="22">    Task.<span class="fu">eval</span>[Int](<span class="kw">throw</span> <span class="kw">new</span> RuntimeException(<span class="st">&quot;boom&quot;</span>))</a>
+<a class="sourceLine" id="cb7-23" title="23">  )</a>
+<a class="sourceLine" id="cb7-24" title="24">  _ &lt;- <span class="fu">add</span>(c)</a>
+<a class="sourceLine" id="cb7-25" title="25">  state &lt;- get</a>
+<a class="sourceLine" id="cb7-26" title="26">} <span class="kw">yield</span> state.<span class="fu">sum</span></a>
+<a class="sourceLine" id="cb7-27" title="27"></a>
+<a class="sourceLine" id="cb7-28" title="28"><span class="kw">val</span> state = <span class="fu">MyState</span>(<span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb7-29" title="29"><span class="kw">val</span> task: Task[Int] = statefulTask.<span class="fu">run</span>(state)</a>
+<a class="sourceLine" id="cb7-30" title="30"><span class="kw">val</span> attempt: Task[Either[Throwable, Int]] = task.<span class="fu">attempt</span></a>
+<a class="sourceLine" id="cb7-31" title="31"><span class="kw">val</span> result: Either[Throwable, Int] = attempt.<span class="fu">runSyncUnsafe</span>()</a>
+<a class="sourceLine" id="cb7-32" title="32"><span class="fu">println</span>(s<span class="st">&quot;STATE: $state&quot;</span>)</a>
+<a class="sourceLine" id="cb7-33" title="33">result.<span class="fu">fold</span>(</a>
+<a class="sourceLine" id="cb7-34" title="34">  throwable =&gt; <span class="fu">println</span>(s<span class="st">&quot;ERROR: $throwable&quot;</span>),</a>
+<a class="sourceLine" id="cb7-35" title="35">  sum =&gt; <span class="fu">println</span>(s<span class="st">&quot;SUM: $sum&quot;</span>),</a>
+<a class="sourceLine" id="cb7-36" title="36">)</a></code></pre></div>
+<p>And the output -</p>
+<pre><code>STATE: MyState(3)
+ERROR: java.lang.RuntimeException: boom</code></pre>
+<p>No need for any special error handling required by those constructing tasks, stateful or otherwise; any <code>Task</code> can be properly handled this way at the very end when we actually run our <code>StatefulTask</code>.</p>
+    </div>
+  </div>
+  <div id="disqus_thread"></div>
+<script>
+var disqus_config = function () {
+this.page.url = 'http://caryrobbins.com' + '/dev/error-state/index.html';
+this.page.identifier = '/dev/error-state/index.html';
+};
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://caryrobbins-com.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</div>
+
+    </div>
+
+    <footer class="footer">
+      <hr />
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <a href="../../">Home</a>
+          </div>
+          <div class="col-md-6 text-right">
+            Copyright © 2020
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
