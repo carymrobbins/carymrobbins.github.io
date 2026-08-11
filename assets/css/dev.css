@@ -1,0 +1,296 @@
+.dev-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+}
+
+.dev-header__home {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+
+.dev-header__home:hover {
+  color: var(--color-accent);
+}
+
+.dev-header__home-icon--normal {
+  display: block;
+}
+
+.dev-header__home-icon--win95 {
+  display: none;
+}
+
+body.win95 .dev-header__home-icon--normal {
+  display: none;
+}
+
+body.win95 .dev-header__home-icon--win95 {
+  display: block;
+}
+
+.dev-header__brand {
+  justify-self: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-fg);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dev-header__brand:hover,
+.dev-header__brand:focus-visible {
+  color: var(--color-accent);
+  filter: none;
+}
+
+.dev-header__music {
+  justify-self: end;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.dev-header__music img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  transition: transform 0.15s ease;
+}
+
+.dev-header__music:hover img,
+.dev-header__music:focus-visible img {
+  transform: scale(1.08);
+}
+
+.dev-content {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+.dev-intro {
+  margin-bottom: 2.5rem;
+}
+
+.dev-intro h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.dev-intro p {
+  color: var(--color-fg-muted);
+}
+
+.dev-about {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin: 3rem 0;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.dev-about__photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: none;
+}
+
+.dev-about__body h2 {
+  margin-top: 0;
+}
+
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.post-list__item {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.post-list__date {
+  flex: none;
+  width: 8.5rem;
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding-top: 0.2rem;
+}
+
+.post-list__title a {
+  color: var(--color-fg);
+  font-size: 1.05rem;
+}
+
+.post-list__title a:hover {
+  color: var(--color-accent);
+}
+
+.post-header {
+  margin-bottom: 2rem;
+}
+
+.post-header h1 {
+  font-size: 1.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.post-header time {
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.post-body h2 {
+  margin-top: 2.5rem;
+}
+
+.post-body img {
+  border-radius: 6px;
+  margin: 1.5rem 0;
+}
+
+.dev-footer {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dev-footer__copy {
+  color: var(--color-fg-muted);
+  font-size: 0.85rem;
+}
+
+/* "95 mode" — see docs/dev/win95-mode.md. The .window/.title-bar/
+   .window-body classes are styled by the scoped 98.css (assets/css/
+   98.win95.css); this block is just our own toggle plumbing — hide the
+   title bar unless win95 mode is active, and style the always-visible
+   toggle button (in *both* modes, so it works as an in/out switch). */
+.title-bar {
+  display: none;
+}
+
+body.win95 .title-bar {
+  display: flex;
+}
+
+body.win95 .win95-frame {
+  max-width: 46rem;
+  margin: 2rem auto;
+  /* 98.css's `.window` selector (this element also carries that class,
+     see docs/dev/win95-mode.md) sets font-size:11px directly on it —
+     that beats the 16px we set on <body> since a direct rule always
+     wins over an inherited one, regardless of specificity. Re-override
+     here, at the same element, so prose inside inherits 16px instead. */
+  font-size: 16px;
+}
+
+body.win95 {
+  background: #008080;
+}
+
+/* Headings deliberately do NOT get the pixel font — "Pixelated MS Sans
+   Serif" is a bitmap font hinted for its native ~11px size (where
+   98.css itself uses it: title bar, buttons); scaled up to heading
+   sizes it produces visible rendering gaps in curved letterforms
+   (lowercase "e" etc.) instead of a clean pixelated look. Keeping
+   headings in the normal font avoids that entirely. */
+
+.win95-toggle-btn {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  /* 98.css's scoped `button` rule sets min-width:75px/min-height:23px
+     — larger than our own width/height, and min/max always win over a
+     smaller width/height regardless of selector specificity, which
+     stretched this into a pill instead of a circle. Override explicitly. */
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  font-family: "Pixelated MS Sans Serif", var(--font-mono);
+  font-size: 1rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-alt);
+  color: var(--color-fg);
+  cursor: pointer;
+}
+
+.win95-toggle-btn:hover,
+.win95-toggle-btn:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Enter-95 ("95", pixel font) vs. exit-95 (a real Windows 95 icon —
+   @react95/icons' "FlyingThroughSpace" screensaver-preview monitor,
+   see docs/dev/win95-mode.md). */
+.win95-toggle-btn__exit {
+  display: none;
+}
+
+body.win95 .win95-toggle-btn__enter {
+  display: none;
+}
+
+body.win95 .win95-toggle-btn__exit {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  /* The fixed 8.5rem date column left too little room for titles like
+     "Overriding Type Class Instances (Part 1)", forcing an awkward
+     multi-line wrap right next to the date. Stack instead. */
+  .post-list__item {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .post-list__date {
+    width: auto;
+    padding-top: 0;
+  }
+
+  /* Smaller/closer-to-the-corner so it covers less of whatever content
+     happens to be scrolled underneath it. */
+  .win95-toggle-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  pre {
+    font-size: 0.85em;
+    -webkit-overflow-scrolling: touch;
+  }
+}

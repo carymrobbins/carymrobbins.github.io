@@ -1,0 +1,203 @@
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+}
+
+.hero__half {
+  position: relative;
+  flex: 0 0 calc(50% + 3vw);
+  width: calc(50% + 3vw);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-fg);
+  text-decoration: none;
+}
+
+.hero__half:hover,
+.hero__half:focus-visible {
+  text-decoration: none;
+  /* Override the global a:hover brightness filter — this anchor wraps
+     the video, which already brightens itself on hover (below); letting
+     the generic rule apply too would double up unpredictably. */
+  filter: none;
+}
+
+.hero__half--music {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6vw) 100%, 0 100%);
+  /* Gradient placeholder until real footage lands, see docs/design/initial.md §6.3/§11 */
+  background: radial-gradient(circle at 30% 30%, #3a2712, var(--color-bg) 70%);
+}
+
+.hero__half--dev {
+  margin-left: -6vw;
+  clip-path: polygon(6vw 0, 100% 0, 100% 100%, 0 100%);
+  background: radial-gradient(circle at 70% 30%, #0f2f30, var(--color-bg) 70%);
+}
+
+.hero__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.55) saturate(1.05);
+  transition: filter 0.25s ease;
+}
+
+.hero__half:hover .hero__media,
+.hero__half:focus-visible .hero__media {
+  filter: brightness(0.7) saturate(1.15);
+}
+
+/* The dev clip's on-screen "code" is AI-generated and doesn't hold up
+   to being read — blur it just enough to stay texture, not text. */
+.hero__half--dev .hero__media {
+  filter: brightness(0.55) saturate(1.05) blur(5px);
+}
+
+.hero__half--dev:hover .hero__media,
+.hero__half--dev:focus-visible .hero__media {
+  filter: brightness(0.7) saturate(1.15) blur(5px);
+}
+
+.hero__label {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  color: var(--color-fg);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+
+.hero__half--music .hero__label {
+  margin-right: 4vw;
+}
+
+.hero__half--dev .hero__label {
+  margin-left: 4vw;
+}
+
+.hero__half--music:hover .hero__label,
+.hero__half--music:focus-visible .hero__label {
+  color: var(--color-accent-music);
+}
+
+.hero__half--dev:hover .hero__label,
+.hero__half--dev:focus-visible .hero__label {
+  color: var(--color-accent-dev);
+}
+
+.hero__seam {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  clip-path: polygon(
+    calc(50% + 3vw - 1.5px) 0,
+    calc(50% + 3vw + 1.5px) 0,
+    calc(50% - 3vw + 1.5px) 100%,
+    calc(50% - 3vw - 1.5px) 100%
+  );
+  background: linear-gradient(
+    to bottom,
+    var(--color-accent-music),
+    var(--color-accent-dev)
+  );
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
+}
+
+.hero__brand {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-fg);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  /* letter-spacing adds trailing space after the last glyph too, so the
+     right padding needs to be smaller than the left to look even. */
+  padding: 0.5rem calc(1.1rem - 0.15em) 0.5rem 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(11, 13, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__media {
+    display: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow: auto;
+  }
+
+  .hero {
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .hero__half,
+  .hero__half--music,
+  .hero__half--dev {
+    flex: 0 0 50vh;
+    width: 100%;
+    height: 50vh;
+    margin-left: 0;
+    clip-path: none;
+  }
+
+  .hero__half--music .hero__label,
+  .hero__half--dev .hero__label {
+    margin: 0;
+  }
+
+  .hero__brand {
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    padding: 0.45rem calc(0.85rem - 0.1em) 0.45rem 0.85rem;
+  }
+
+  .hero__seam {
+    inset: 0;
+    clip-path: none;
+    background: none;
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(
+        to right,
+        var(--color-accent-music),
+        var(--color-accent-dev)
+      )
+      1;
+    top: 50vh;
+    height: 0;
+    filter: none;
+  }
+}

@@ -1,422 +1,496 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Intro to Scala Macros</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intro to Scala Macros — Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+  <!-- Loaded first so our own rules below can override its `body`
+       defaults (font-size, font-family) without needing !important —
+       see docs/dev/win95-mode.md. -->
+  <link rel="stylesheet" href="/assets/css/98.win95.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/prism.css">
+  <link rel="stylesheet" href="/assets/css/dev.css">
+</head>
+<body class="dev">
+  <script>
+    try {
+      if (localStorage.getItem("win95") === "1") document.body.classList.add("win95");
+    } catch (e) {}
+  </script>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
-
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="../../">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
+  <div class="window win95-frame">
+    <div class="title-bar">
+      <div class="title-bar-text">Intro to Scala Macros — Cary Robbins</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close" id="win95-close"></button>
       </div>
-    </nav>
+    </div>
+    <div class="window-body">
+      <header class="dev-header">
+        <a class="dev-header__home" href="/dev/" title="Dev Home">
+          <svg class="dev-header__home-icon dev-header__home-icon--normal" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+          </svg>
+          <img class="dev-header__home-icon dev-header__home-icon--win95" src="/assets/icons/win95-computer.svg" width="24" height="24" alt="" />
+          <span class="sr-only">Dev Home</span>
+        </a>
+        <a class="dev-header__brand" href="/">Cary Robbins</a>
+        <a class="dev-header__music" href="/music" title="Music" aria-label="Music">
+          <img src="/assets/favicon/apple-touch-icon.png" alt="" width="32" height="32">
+        </a>
+      </header>
 
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>Intro to Scala Macros</h1>
-    </div>
-    <div class="col-md-12">
-      <small>August 12, 2016</small>
-    </div>
-  </div>
-  <hr />
-  <div class="row">
-    <div class="col-md-12">
-      <p>Scala macros can be daunting at first, but once you get the hang of them they become an invaluable tool for removing boilerplate from your code. We’ll take a look at implementing a macro from scratch using the <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">Macro Paradise</a> compiler plugin.</p>
-<p>Let’s implement a simpler syntax for declaring Algebraic Data Types (ADTs) in Scala. I have an implementation of this on <a href="https://github.com/carymrobbins/scala-adt">GitHub</a>, but we’ll target a simpler version for this exercise.</p>
-<h2 id="reviewing-algebraic-data-types">Reviewing Algebraic Data Types</h2>
-<p>In Scala, we represent ADTs by way of subtype polymorphism (i.e. inheritance).</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">sealed</span> <span class="kw">trait</span> Maybe[+A]</a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> Just[+A](a: A) <span class="kw">extends</span> Maybe[A]</a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="kw">case</span> <span class="kw">object</span> Nix <span class="kw">extends</span> Maybe[Nothing]</a></code></pre></div>
+      <main class="dev-content">
+        <article>
+  <header class="post-header">
+    <h1>Intro to Scala Macros</h1>
+    <time datetime="2016-08-12">August 12, 2016</time>
+  </header>
+  <div class="post-body">
+    <p>Scala macros can be daunting at first, but once you get the hang of them
+they become an invaluable tool for removing boilerplate from your code.
+We'll take a look at implementing a macro from scratch using the
+<a href="http://docs.scala-lang.org/overviews/macros/paradise.html">Macro Paradise</a>
+compiler plugin.</p>
+<p>Let's implement a simpler syntax for declaring Algebraic Data Types (ADTs) in Scala.
+I have an implementation of this on <a href="https://github.com/carymrobbins/scala-adt">GitHub</a>,
+but we'll target a simpler version for this exercise.</p>
+<h2>Reviewing Algebraic Data Types</h2>
+<p>In Scala, we represent ADTs by way of subtype polymorphism (i.e. inheritance).</p>
+<pre class="language-scala"><code class="language-scala"><span class="token keyword">sealed</span> <span class="token keyword">trait</span> Maybe<span class="token punctuation">[</span><span class="token operator">+</span>A<span class="token punctuation">]</span>
+<span class="token keyword">final</span> <span class="token keyword">case</span> <span class="token keyword">class</span> Just<span class="token punctuation">[</span><span class="token operator">+</span>A<span class="token punctuation">]</span><span class="token punctuation">(</span>a<span class="token operator">:</span> A<span class="token punctuation">)</span> <span class="token keyword">extends</span> Maybe<span class="token punctuation">[</span>A<span class="token punctuation">]</span>
+<span class="token keyword">case</span> <span class="token keyword">object</span> Nix <span class="token keyword">extends</span> Maybe<span class="token punctuation">[</span><span class="token builtin">Nothing</span><span class="token punctuation">]</span></code></pre>
 <p>Compare this with Haskell, which is significantly more terse than Scala -</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">data</span> <span class="dt">Maybe</span> a <span class="fu">=</span> <span class="dt">Just</span> a <span class="fu">|</span> <span class="dt">Nix</span></a></code></pre></div>
-<p>Wouldn’t it be nice if we could have something like the following in Scala and get the same thing?</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb3-1" title="1">@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }</a></code></pre></div>
-<p>With macro annotations, this is possible! Note that macros, when applied to classes, traits, or objects, can expand to a single class/trait/object or a class/trait with a companion object. So let’s try to target the following output for our macro -</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">sealed</span> <span class="kw">trait</span> Maybe[+A]</a>
-<a class="sourceLine" id="cb4-2" title="2"><span class="kw">object</span> Maybe {</a>
-<a class="sourceLine" id="cb4-3" title="3">  <span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> Just[+A](a: A) <span class="kw">extends</span> Maybe[A]</a>
-<a class="sourceLine" id="cb4-4" title="4">  <span class="kw">case</span> <span class="kw">object</span> Nix <span class="kw">extends</span> Maybe[Nothing]</a>
-<a class="sourceLine" id="cb4-5" title="5">}</a></code></pre></div>
-<h2 id="comprehension">Comprehension</h2>
-<p>A quick note on comprehending this tutorial. I strongly recommend actually writing the code manually as you go along. Simply reading or pasting the code won’t help you gain the intuition needed as efficiently as typing the code yourself. Enjoy!</p>
-<h2 id="dependencies">Dependencies</h2>
-<p>Let’s get our <strong>build.sbt</strong> to match something like the following -</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb5-1" title="1">name := <span class="st">&quot;scala-macros-intro&quot;</span></a>
-<a class="sourceLine" id="cb5-2" title="2"></a>
-<a class="sourceLine" id="cb5-3" title="3">version := <span class="st">&quot;1.0&quot;</span></a>
-<a class="sourceLine" id="cb5-4" title="4"></a>
-<a class="sourceLine" id="cb5-5" title="5">scalaVersion := <span class="st">&quot;2.11.8&quot;</span></a>
-<a class="sourceLine" id="cb5-6" title="6"></a>
-<a class="sourceLine" id="cb5-7" title="7">scalacOptions ++= Seq(<span class="st">&quot;-unchecked&quot;</span>, <span class="st">&quot;-deprecation&quot;</span>, <span class="st">&quot;-feature&quot;</span>, <span class="st">&quot;-Xfatal-warnings&quot;</span>)</a>
-<a class="sourceLine" id="cb5-8" title="8">scalacOptions in Test ++= Seq(<span class="st">&quot;-Yrangepos&quot;</span>)</a>
-<a class="sourceLine" id="cb5-9" title="9"></a>
-<a class="sourceLine" id="cb5-10" title="10">crossScalaVersions := Seq(</a>
-<a class="sourceLine" id="cb5-11" title="11">  (<span class="dv">2</span> to <span class="dv">6</span>).<span class="fu">map</span>(<span class="st">&quot;2.10.&quot;</span> + _),</a>
-<a class="sourceLine" id="cb5-12" title="12">  (<span class="dv">0</span> to <span class="dv">8</span>).<span class="fu">map</span>(<span class="st">&quot;2.11.&quot;</span> + _)</a>
-<a class="sourceLine" id="cb5-13" title="13">).<span class="fu">flatten</span></a>
-<a class="sourceLine" id="cb5-14" title="14"></a>
-<a class="sourceLine" id="cb5-15" title="15"><span class="fu">addCompilerPlugin</span>(<span class="st">&quot;org.scalamacros&quot;</span> % <span class="st">&quot;paradise&quot;</span> % <span class="st">&quot;2.1.0&quot;</span> cross CrossVersion.<span class="fu">full</span>)</a>
-<a class="sourceLine" id="cb5-16" title="16"></a>
-<a class="sourceLine" id="cb5-17" title="17">libraryDependencies &lt;+= <span class="fu">scalaVersion</span>(<span class="st">&quot;org.scala-lang&quot;</span> % <span class="st">&quot;scala-reflect&quot;</span> % _)</a>
-<a class="sourceLine" id="cb5-18" title="18"></a>
-<a class="sourceLine" id="cb5-19" title="19">libraryDependencies += <span class="st">&quot;org.scalacheck&quot;</span> %% <span class="st">&quot;scalacheck&quot;</span> % <span class="st">&quot;1.13.2&quot;</span> % <span class="st">&quot;test&quot;</span></a></code></pre></div>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">data</span> <span class="token constant">Maybe</span> <span class="token hvariable">a</span> <span class="token operator">=</span> <span class="token constant">Just</span> <span class="token hvariable">a</span> <span class="token operator">|</span> <span class="token constant">Nix</span></code></pre>
+<p>Wouldn't it be nice if we could have something like the following in Scala
+and get the same thing?</p>
+<pre class="language-scala"><code class="language-scala"><span class="token annotation punctuation">@ADT</span> <span class="token keyword">trait</span> Maybe<span class="token punctuation">[</span>A<span class="token punctuation">]</span> <span class="token punctuation">{</span> Just<span class="token punctuation">(</span>a<span class="token operator">:</span> A<span class="token punctuation">)</span><span class="token punctuation">;</span> Nix <span class="token punctuation">}</span></code></pre>
+<p>With macro annotations, this is possible! Note that macros, when applied to
+classes, traits, or objects, can expand to a single class/trait/object or a
+class/trait with a companion object. So let's try to target the following
+output for our macro -</p>
+<pre class="language-scala"><code class="language-scala"><span class="token keyword">sealed</span> <span class="token keyword">trait</span> Maybe<span class="token punctuation">[</span><span class="token operator">+</span>A<span class="token punctuation">]</span>
+<span class="token keyword">object</span> Maybe <span class="token punctuation">{</span>
+  <span class="token keyword">final</span> <span class="token keyword">case</span> <span class="token keyword">class</span> Just<span class="token punctuation">[</span><span class="token operator">+</span>A<span class="token punctuation">]</span><span class="token punctuation">(</span>a<span class="token operator">:</span> A<span class="token punctuation">)</span> <span class="token keyword">extends</span> Maybe<span class="token punctuation">[</span>A<span class="token punctuation">]</span>
+  <span class="token keyword">case</span> <span class="token keyword">object</span> Nix <span class="token keyword">extends</span> Maybe<span class="token punctuation">[</span><span class="token builtin">Nothing</span><span class="token punctuation">]</span>
+<span class="token punctuation">}</span></code></pre>
+<h2>Comprehension</h2>
+<p>A quick note on comprehending this tutorial. I strongly recommend actually
+writing the code manually as you go along. Simply reading or pasting the code
+won't help you gain the intuition needed as efficiently as typing the code yourself.
+Enjoy!</p>
+<h2>Dependencies</h2>
+<p>Let's get our <strong>build.sbt</strong> to match something like the following -</p>
+<pre class="language-scala"><code class="language-scala">name <span class="token operator">:</span><span class="token operator">=</span> <span class="token string">"scala-macros-intro"</span>
+
+version <span class="token operator">:</span><span class="token operator">=</span> <span class="token string">"1.0"</span>
+
+scalaVersion <span class="token operator">:</span><span class="token operator">=</span> <span class="token string">"2.11.8"</span>
+
+scalacOptions <span class="token operator">++</span><span class="token operator">=</span> Seq<span class="token punctuation">(</span><span class="token string">"-unchecked"</span><span class="token punctuation">,</span> <span class="token string">"-deprecation"</span><span class="token punctuation">,</span> <span class="token string">"-feature"</span><span class="token punctuation">,</span> <span class="token string">"-Xfatal-warnings"</span><span class="token punctuation">)</span>
+scalacOptions in Test <span class="token operator">++</span><span class="token operator">=</span> Seq<span class="token punctuation">(</span><span class="token string">"-Yrangepos"</span><span class="token punctuation">)</span>
+
+crossScalaVersions <span class="token operator">:</span><span class="token operator">=</span> Seq<span class="token punctuation">(</span>
+  <span class="token punctuation">(</span><span class="token number">2</span> to <span class="token number">6</span><span class="token punctuation">)</span><span class="token punctuation">.</span>map<span class="token punctuation">(</span><span class="token string">"2.10."</span> <span class="token operator">+</span> _<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token punctuation">(</span><span class="token number">0</span> to <span class="token number">8</span><span class="token punctuation">)</span><span class="token punctuation">.</span>map<span class="token punctuation">(</span><span class="token string">"2.11."</span> <span class="token operator">+</span> _<span class="token punctuation">)</span>
+<span class="token punctuation">)</span><span class="token punctuation">.</span>flatten
+
+addCompilerPlugin<span class="token punctuation">(</span><span class="token string">"org.scalamacros"</span> <span class="token operator">%</span> <span class="token string">"paradise"</span> <span class="token operator">%</span> <span class="token string">"2.1.0"</span> cross CrossVersion<span class="token punctuation">.</span>full<span class="token punctuation">)</span>
+
+libraryDependencies <span class="token operator">&lt;</span><span class="token operator">+=</span> scalaVersion<span class="token punctuation">(</span><span class="token string">"org.scala-lang"</span> <span class="token operator">%</span> <span class="token string">"scala-reflect"</span> <span class="token operator">%</span> _<span class="token punctuation">)</span>
+
+libraryDependencies <span class="token operator">+=</span> <span class="token string">"org.scalacheck"</span> <span class="token operator">%</span><span class="token operator">%</span> <span class="token string">"scalacheck"</span> <span class="token operator">%</span> <span class="token string">"1.13.2"</span> <span class="token operator">%</span> <span class="token string">"test"</span></code></pre>
 <p>If there are newer versions available, you may wish to change the values above.</p>
-<h2 id="implementation">Implementation</h2>
-<p>Let’s start by stubbing out a macro definition.</p>
+<h2>Implementation</h2>
+<p>Let's start by stubbing out a macro definition.</p>
 <p><strong>src/main/scala/intro/macros/ADT.scala</strong></p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">package</span> intro.<span class="fu">macros</span></a>
-<a class="sourceLine" id="cb6-2" title="2"></a>
-<a class="sourceLine" id="cb6-3" title="3"><span class="kw">import</span> scala.<span class="fu">annotation</span>.<span class="fu">StaticAnnotation</span></a>
-<a class="sourceLine" id="cb6-4" title="4"><span class="kw">import</span> scala.<span class="fu">language</span>.<span class="fu">experimental</span>.<span class="fu">macros</span></a>
-<a class="sourceLine" id="cb6-5" title="5"><span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">macros</span>.<span class="fu">whitebox</span></a>
-<a class="sourceLine" id="cb6-6" title="6"></a>
-<a class="sourceLine" id="cb6-7" title="7"><span class="kw">class</span> ADT <span class="kw">extends</span> StaticAnnotation {</a>
-<a class="sourceLine" id="cb6-8" title="8">  <span class="kw">def</span> <span class="fu">macroTransform</span>(annottees: Any*): Any = macro ADT.<span class="fu">impl</span></a>
-<a class="sourceLine" id="cb6-9" title="9">}</a>
-<a class="sourceLine" id="cb6-10" title="10"></a>
-<a class="sourceLine" id="cb6-11" title="11"><span class="kw">object</span> ADT {</a>
-<a class="sourceLine" id="cb6-12" title="12"></a>
-<a class="sourceLine" id="cb6-13" title="13">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {</a>
-<a class="sourceLine" id="cb6-14" title="14">    ???</a>
-<a class="sourceLine" id="cb6-15" title="15">  }</a>
-<a class="sourceLine" id="cb6-16" title="16">}</a></code></pre></div>
-<p>In true TDD style, let’s go ahead and create an accompanying test case -</p>
+<pre class="language-scala"><code class="language-scala"><span class="token keyword">package</span> <span class="token namespace">intro<span class="token punctuation">.</span>macros</span>
+
+<span class="token keyword">import</span> <span class="token namespace">scala<span class="token punctuation">.</span>annotation<span class="token punctuation">.</span></span>StaticAnnotation
+<span class="token keyword">import</span> <span class="token namespace">scala<span class="token punctuation">.</span>language<span class="token punctuation">.</span>experimental<span class="token punctuation">.</span>macros</span>
+<span class="token keyword">import</span> <span class="token namespace">scala<span class="token punctuation">.</span>reflect<span class="token punctuation">.</span>macros<span class="token punctuation">.</span>whitebox</span>
+
+<span class="token keyword">class</span> ADT <span class="token keyword">extends</span> StaticAnnotation <span class="token punctuation">{</span>
+  <span class="token keyword">def</span> macroTransform<span class="token punctuation">(</span>annottees<span class="token operator">:</span> <span class="token builtin">Any</span><span class="token operator">*</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">Any</span> <span class="token operator">=</span> macro ADT<span class="token punctuation">.</span>impl
+<span class="token punctuation">}</span>
+
+<span class="token keyword">object</span> ADT <span class="token punctuation">{</span>
+
+  <span class="token keyword">def</span> impl<span class="token punctuation">(</span>c<span class="token operator">:</span> whitebox<span class="token punctuation">.</span>Context<span class="token punctuation">)</span><span class="token punctuation">(</span>annottees<span class="token operator">:</span> c<span class="token punctuation">.</span>Expr<span class="token punctuation">[</span><span class="token builtin">Any</span><span class="token punctuation">]</span><span class="token operator">*</span><span class="token punctuation">)</span><span class="token operator">:</span> c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span>Tree <span class="token operator">=</span> <span class="token punctuation">{</span>
+    <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>In true TDD style, let's go ahead and create an accompanying test case -</p>
 <p><strong>src/test/scala/intro/macros/ADTSpec.scala</strong></p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">package</span> intro.<span class="fu">macros</span></a>
-<a class="sourceLine" id="cb7-2" title="2"></a>
-<a class="sourceLine" id="cb7-3" title="3"><span class="kw">import</span> org.<span class="fu">scalacheck</span>.<span class="fu">Properties</span></a>
-<a class="sourceLine" id="cb7-4" title="4"></a>
-<a class="sourceLine" id="cb7-5" title="5">@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }</a>
-<a class="sourceLine" id="cb7-6" title="6"></a>
-<a class="sourceLine" id="cb7-7" title="7"><span class="kw">class</span> ADTSpec <span class="kw">extends</span> Properties(<span class="st">&quot;@ADT macro&quot;</span>) {</a>
-<a class="sourceLine" id="cb7-8" title="8"></a>
-<a class="sourceLine" id="cb7-9" title="9">  <span class="co">// Import Just and Nix</span></a>
-<a class="sourceLine" id="cb7-10" title="10">  <span class="kw">import</span> Maybe._</a>
-<a class="sourceLine" id="cb7-11" title="11"></a>
-<a class="sourceLine" id="cb7-12" title="12">  <span class="fu">property</span>(<span class="st">&quot;generates Just constructor&quot;</span>) = {</a>
-<a class="sourceLine" id="cb7-13" title="13">    <span class="fu">Just</span>(<span class="dv">0</span>) == <span class="fu">Just</span>(<span class="dv">0</span>)</a>
-<a class="sourceLine" id="cb7-14" title="14">  }</a>
-<a class="sourceLine" id="cb7-15" title="15"></a>
-<a class="sourceLine" id="cb7-16" title="16">  <span class="fu">property</span>(<span class="st">&quot;generates Nix singleton&quot;</span>) = {</a>
-<a class="sourceLine" id="cb7-17" title="17">    Nix == Nix</a>
-<a class="sourceLine" id="cb7-18" title="18">  }</a>
-<a class="sourceLine" id="cb7-19" title="19">}</a></code></pre></div>
-<p>Let’s start up SBT and confirm we get a failing test case -</p>
-<pre class="text"><code>% sbt
-&gt; compile
+<pre class="language-scala"><code class="language-scala"><span class="token keyword">package</span> <span class="token namespace">intro<span class="token punctuation">.</span>macros</span>
+
+<span class="token keyword">import</span> <span class="token namespace">org<span class="token punctuation">.</span>scalacheck<span class="token punctuation">.</span></span>Properties
+
+<span class="token annotation punctuation">@ADT</span> <span class="token keyword">trait</span> Maybe<span class="token punctuation">[</span>A<span class="token punctuation">]</span> <span class="token punctuation">{</span> Just<span class="token punctuation">(</span>a<span class="token operator">:</span> A<span class="token punctuation">)</span><span class="token punctuation">;</span> Nix <span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> ADTSpec <span class="token keyword">extends</span> Properties<span class="token punctuation">(</span><span class="token string">"@ADT macro"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// Import Just and Nix</span>
+  <span class="token keyword">import</span> Maybe<span class="token punctuation">.</span>_
+
+  property<span class="token punctuation">(</span><span class="token string">"generates Just constructor"</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+    Just<span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span> <span class="token operator">==</span> Just<span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span>
+
+  property<span class="token punctuation">(</span><span class="token string">"generates Nix singleton"</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+    Nix <span class="token operator">==</span> Nix
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>Let's start up SBT and confirm we get a failing test case -</p>
+<pre class="language-text"><code class="language-text">% sbt
+> compile
 [success]
-&gt; test
+> test
 [error] ADTSpec.scala:5: exception during macro expansion:
 [error] scala.NotImplementedError: an implementation is missing
 ...</code></pre>
-<p>We’ll also get a bunch of other compiler errors as well. Let’s focus on getting compilable code to be generated from our macro and then we can confirm that the tests pass.</p>
-<p>Let’s take another look at that <code>impl</code> method. Pretty much all of our macro logic will reside in the body of this method.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb9-1" title="1">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {</a>
-<a class="sourceLine" id="cb9-2" title="2">    ???</a>
-<a class="sourceLine" id="cb9-3" title="3">  }</a></code></pre></div>
-<p>There’s a few things to note here. The <code>c</code> passed in is the macro <code>Context</code>. This value contains all of the types and constructors required for building the resulting <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">ASTs</a> wee need.</p>
-<p>The second parameter is <code>annottees</code> which is the AST we have annotated. For instance, our usage was the following -</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb10-1" title="1">@ADT <span class="kw">trait</span> Maybe[A] { <span class="fu">Just</span>(a: A); Nix }</a></code></pre></div>
-<p>So our <code>annottees</code> value will contain that entire <code>trait</code> definition. If we had also defined a companion object, it would be included in the <code>annottees</code> value as well.</p>
-<p>Finally, we return <code>c.universe.Tree</code>, which is just a resulting AST to replace our input AST.</p>
-<p>To get a better feel for what’s going on here and how to actually deal with the AST input, let’s just print out the raw tree. For convenience, let’s just import everything from <code>c.universe</code> as it contains a bunch of stuff we’ll need for implementing our macro, including the <code>showRaw</code> function.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb11-1" title="1">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {</a>
-<a class="sourceLine" id="cb11-2" title="2">    <span class="kw">import</span> c.<span class="fu">universe</span>._</a>
-<a class="sourceLine" id="cb11-3" title="3">    <span class="fu">println</span>(s<span class="st">&quot;ANNOTTEES: ${showRaw(annottees)}&quot;</span>)</a>
-<a class="sourceLine" id="cb11-4" title="4">    ???</a>
-<a class="sourceLine" id="cb11-5" title="5">  }</a></code></pre></div>
-<pre class="text"><code>&gt; test
-ANNOTTEES: List(Expr(ClassDef(Modifiers(ABSTRACT | DEFAULTPARAM/TRAIT), TypeName(&quot;Maybe&quot;), List(TypeDef(Modifiers(PARAM), TypeName(&quot;A&quot;), List(), TypeBoundsTree(EmptyTree, EmptyTree))), Template(List(Select(Ident(scala), TypeName(&quot;AnyRef&quot;))), noSelfType, List(DefDef(Modifiers(), TermName(&quot;$init$&quot;), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(())))), Apply(Ident(TermName(&quot;Just&quot;)), List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;))))), Ident(TermName(&quot;Nix&quot;)))))))</code></pre>
-<p>Whoa, that’s a little hard to look at. I’ve written a simple Haskell script called <a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/pprint-parens.hs">pprint-parens.hs</a>, so feel free to use it while following along. Simply run the script and it will await for text from stdin, so paste your raw AST and use <code>ctrl+d</code> to tell it you’re done. The tree above then becomes (showing just the first ten lines for brevity) -</p>
-<pre class="text"><code>% pprint-parens &gt; ast
-&lt;paste raw tree&gt;
-&lt;press ctrl+d&gt;
+<p>We'll also get a bunch of other compiler errors as well. Let's focus on getting
+compilable code to be generated from our macro and then we can confirm that the tests
+pass.</p>
+<p>Let's take another look at that <code>impl</code> method. Pretty much all of our macro logic
+will reside in the body of this method.</p>
+<pre class="language-scala"><code class="language-scala">  <span class="token keyword">def</span> impl<span class="token punctuation">(</span>c<span class="token operator">:</span> whitebox<span class="token punctuation">.</span>Context<span class="token punctuation">)</span><span class="token punctuation">(</span>annottees<span class="token operator">:</span> c<span class="token punctuation">.</span>Expr<span class="token punctuation">[</span><span class="token builtin">Any</span><span class="token punctuation">]</span><span class="token operator">*</span><span class="token punctuation">)</span><span class="token operator">:</span> c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span>Tree <span class="token operator">=</span> <span class="token punctuation">{</span>
+    <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+  <span class="token punctuation">}</span></code></pre>
+<p>There's a few things to note here. The <code>c</code> passed in is the macro <code>Context</code>.
+This value contains all of the types and constructors required for building the
+resulting <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">ASTs</a> wee need.</p>
+<p>The second parameter is <code>annottees</code> which is the AST we have annotated. For instance,
+our usage was the following -</p>
+<pre class="language-scala"><code class="language-scala"><span class="token annotation punctuation">@ADT</span> <span class="token keyword">trait</span> Maybe<span class="token punctuation">[</span>A<span class="token punctuation">]</span> <span class="token punctuation">{</span> Just<span class="token punctuation">(</span>a<span class="token operator">:</span> A<span class="token punctuation">)</span><span class="token punctuation">;</span> Nix <span class="token punctuation">}</span></code></pre>
+<p>So our <code>annottees</code> value will contain that entire <code>trait</code> definition. If we had
+also defined a companion object, it would be included in the <code>annottees</code> value as well.</p>
+<p>Finally, we return <code>c.universe.Tree</code>, which is just a resulting AST to replace our
+input AST.</p>
+<p>To get a better feel for what's going on here and how to actually deal with the
+AST input, let's just print out the raw tree. For convenience, let's just import
+everything from <code>c.universe</code> as it contains a bunch of stuff we'll need for
+implementing our macro, including the <code>showRaw</code> function.</p>
+<pre class="language-scala"><code class="language-scala">  <span class="token keyword">def</span> impl<span class="token punctuation">(</span>c<span class="token operator">:</span> whitebox<span class="token punctuation">.</span>Context<span class="token punctuation">)</span><span class="token punctuation">(</span>annottees<span class="token operator">:</span> c<span class="token punctuation">.</span>Expr<span class="token punctuation">[</span><span class="token builtin">Any</span><span class="token punctuation">]</span><span class="token operator">*</span><span class="token punctuation">)</span><span class="token operator">:</span> c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span>Tree <span class="token operator">=</span> <span class="token punctuation">{</span>
+    <span class="token keyword">import</span> <span class="token namespace">c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span></span>_
+    println<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"ANNOTTEES: </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">showRaw<span class="token punctuation">(</span>annottees<span class="token punctuation">)</span></span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">)</span>
+    <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+  <span class="token punctuation">}</span></code></pre>
+<pre class="language-text"><code class="language-text">> test
+ANNOTTEES: List(Expr(ClassDef(Modifiers(ABSTRACT | DEFAULTPARAM/TRAIT), TypeName("Maybe"), List(TypeDef(Modifiers(PARAM), TypeName("A"), List(), TypeBoundsTree(EmptyTree, EmptyTree))), Template(List(Select(Ident(scala), TypeName("AnyRef"))), noSelfType, List(DefDef(Modifiers(), TermName("$init$"), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(())))), Apply(Ident(TermName("Just")), List(Typed(Ident(TermName("a")), Ident(TypeName("A"))))), Ident(TermName("Nix")))))))</code></pre>
+<p>Whoa, that's a little hard to look at. I've written a simple Haskell script called
+<a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/pprint-parens.hs">pprint-parens.hs</a>,
+so feel free to use it while following along. Simply run the script and it will await
+for text from stdin, so paste your raw AST and use <code>ctrl+d</code> to tell it you're done.
+The tree above then becomes (showing just the first ten lines for brevity) -</p>
+<pre class="language-text"><code class="language-text">% pprint-parens > ast
+<paste raw tree>
+<press ctrl+d>
 % head -n10 ast</code></pre>
-<div class="sourceCode" id="cb14"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb14-1" title="1">List(</a>
-<a class="sourceLine" id="cb14-2" title="2">  <span class="fu">Expr</span>(</a>
-<a class="sourceLine" id="cb14-3" title="3">    <span class="fu">ClassDef</span>(</a>
-<a class="sourceLine" id="cb14-4" title="4">      <span class="fu">Modifiers</span>(ABSTRACT | DEFAULTPARAM/TRAIT), <span class="fu">TypeName</span>(<span class="st">&quot;Maybe&quot;</span>), List(</a>
-<a class="sourceLine" id="cb14-5" title="5">        <span class="fu">TypeDef</span>(</a>
-<a class="sourceLine" id="cb14-6" title="6">          <span class="fu">Modifiers</span>(PARAM), <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>), List(), <span class="fu">TypeBoundsTree</span>(</a>
-<a class="sourceLine" id="cb14-7" title="7">            EmptyTree, EmptyTree</a>
-<a class="sourceLine" id="cb14-8" title="8">          )</a>
-<a class="sourceLine" id="cb14-9" title="9">        )</a>
-<a class="sourceLine" id="cb14-10" title="10">      ), <span class="fu">Template</span>(</a></code></pre></div>
-<p>This may be a little intimidating, but the most important part is to take note of the first few lines. Our <code>trait</code> is essentially represented as -</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb15-1" title="1">List(<span class="fu">Expr</span>(<span class="fu">ClassDef</span>(...)))</a></code></pre></div>
-<p>So let’s match on that case, failing for other trees which we won’t handle at the moment -</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">object</span> ADT {</a>
-<a class="sourceLine" id="cb16-2" title="2"></a>
-<a class="sourceLine" id="cb16-3" title="3">  <span class="kw">val</span> MACRO_NAME = <span class="st">&quot;@ADT&quot;</span></a>
-<a class="sourceLine" id="cb16-4" title="4"></a>
-<a class="sourceLine" id="cb16-5" title="5">  <span class="kw">def</span> <span class="fu">impl</span>(c: whitebox.<span class="fu">Context</span>)(annottees: c.<span class="fu">Expr</span>[Any]*): c.<span class="fu">universe</span>.<span class="fu">Tree</span> = {</a>
-<a class="sourceLine" id="cb16-6" title="6">    <span class="kw">import</span> c.<span class="fu">universe</span>._</a>
-<a class="sourceLine" id="cb16-7" title="7"></a>
-<a class="sourceLine" id="cb16-8" title="8">    <span class="kw">def</span> <span class="fu">fail</span>(msg: String) = c.<span class="fu">abort</span>(c.<span class="fu">enclosingPosition</span>, msg)</a>
-<a class="sourceLine" id="cb16-9" title="9"></a>
-<a class="sourceLine" id="cb16-10" title="10">    <span class="kw">def</span> <span class="fu">run</span>(): Tree = annottees <span class="kw">match</span> {</a>
-<a class="sourceLine" id="cb16-11" title="11">      <span class="co">// @ADT trait/class Foo { ... }</span></a>
-<a class="sourceLine" id="cb16-12" title="12">      <span class="kw">case</span> List(<span class="fu">Expr</span>(cls: ClassDef)) =&gt; ???</a>
-<a class="sourceLine" id="cb16-13" title="13"></a>
-<a class="sourceLine" id="cb16-14" title="14">      <span class="kw">case</span> _ =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Invalid $MACRO_NAME usage&quot;</span>)</a>
-<a class="sourceLine" id="cb16-15" title="15">    }</a>
-<a class="sourceLine" id="cb16-16" title="16"></a>
-<a class="sourceLine" id="cb16-17" title="17">    <span class="fu">run</span>()</a>
-<a class="sourceLine" id="cb16-18" title="18">  }</a>
-<a class="sourceLine" id="cb16-19" title="19">}</a></code></pre></div>
-<p>You’ll also notice that I’m defining <code>defs</code> within our <code>impl</code> method instead of outside of it. The main reason for this is that it’s much simpler to re-use the names imported from <code>c.universe._</code>; otherwise, we’d have to pass <code>c</code> around to all of the helper methods.</p>
-<p>Now let’s start deconstructing the AST and inspecting it. First, we’ll assert that the class we’re dealing with is <em>actually</em> a trait.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb17-1" title="1">    <span class="kw">def</span> <span class="fu">run</span>(): Tree = annottees <span class="kw">match</span> {</a>
-<a class="sourceLine" id="cb17-2" title="2">      <span class="co">// @ADT trait Foo { ... }</span></a>
-<a class="sourceLine" id="cb17-3" title="3">      <span class="kw">case</span> List(<span class="fu">Expr</span>(cls: ClassDef)) =&gt; <span class="fu">runClass</span>(cls)</a>
-<a class="sourceLine" id="cb17-4" title="4"></a>
-<a class="sourceLine" id="cb17-5" title="5">      <span class="kw">case</span> _ =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Invalid $MACRO_NAME usage&quot;</span>)</a>
-<a class="sourceLine" id="cb17-6" title="6">    }</a>
-<a class="sourceLine" id="cb17-7" title="7"></a>
-<a class="sourceLine" id="cb17-8" title="8">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {</a>
-<a class="sourceLine" id="cb17-9" title="9">      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls</a>
-<a class="sourceLine" id="cb17-10" title="10">      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)</a>
-<a class="sourceLine" id="cb17-11" title="11">      ???</a>
-<a class="sourceLine" id="cb17-12" title="12">    }</a></code></pre></div>
-<p>Now we’re at the point where we’ll need to inspect our input AST (which we printed earlier) to see how our constructors (<code>Just(a: A)</code> and <code>Nix</code>) are appearing.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb18-1" title="1">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {</a>
-<a class="sourceLine" id="cb18-2" title="2">      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls</a>
-<a class="sourceLine" id="cb18-3" title="3">      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)</a>
-<a class="sourceLine" id="cb18-4" title="4"></a>
-<a class="sourceLine" id="cb18-5" title="5">      clsTemplate.<span class="fu">body</span>.<span class="fu">zipWithIndex</span>.<span class="fu">foreach</span> { <span class="kw">case</span> (part, i) =&gt;</a>
-<a class="sourceLine" id="cb18-6" title="6">        <span class="fu">println</span>(s<span class="st">&quot;part $i; ${showRaw(part)}&quot;</span>)</a>
-<a class="sourceLine" id="cb18-7" title="7">      }</a>
-<a class="sourceLine" id="cb18-8" title="8">      ???</a>
-<a class="sourceLine" id="cb18-9" title="9">    }</a></code></pre></div>
-<pre class="text"><code>&gt; test
-part 0; DefDef(Modifiers(), TermName(&quot;$init$&quot;), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(()))))
-part 1; Apply(Ident(TermName(&quot;Just&quot;)), List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;)))))
-part 2; Ident(TermName(&quot;Nix&quot;))</code></pre>
-<p>So there’s a special <code>$init$</code> method, which we’ll want to ignore, and then we have our constructors. Scala sees the <code>Just(a: A)</code> as an <code>Apply</code> and the <code>Nix</code> as a simple <code>Ident</code>. So we can just pick out the parts that we need.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb20-1" title="1">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {</a>
-<a class="sourceLine" id="cb20-2" title="2">      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls</a>
-<a class="sourceLine" id="cb20-3" title="3">      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)</a>
-<a class="sourceLine" id="cb20-4" title="4"></a>
-<a class="sourceLine" id="cb20-5" title="5">      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {</a>
-<a class="sourceLine" id="cb20-6" title="6">        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; (name, args)</a>
-<a class="sourceLine" id="cb20-7" title="7">        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; (name, Nil)</a>
-<a class="sourceLine" id="cb20-8" title="8">      }</a>
-<a class="sourceLine" id="cb20-9" title="9"></a>
-<a class="sourceLine" id="cb20-10" title="10">      ctors.<span class="fu">foreach</span> { <span class="kw">case</span> (name, args) =&gt; <span class="fu">println</span>(s<span class="st">&quot;$name: ${showRaw(args)}&quot;</span>) }</a>
-<a class="sourceLine" id="cb20-11" title="11"></a>
-<a class="sourceLine" id="cb20-12" title="12">      ???</a>
-<a class="sourceLine" id="cb20-13" title="13">    }</a></code></pre></div>
-<pre class="text"><code>&gt; test
-Just: List(Typed(Ident(TermName(&quot;a&quot;)), Ident(TypeName(&quot;A&quot;))))
+<pre class="language-scala"><code class="language-scala">List<span class="token punctuation">(</span>
+  Expr<span class="token punctuation">(</span>
+    ClassDef<span class="token punctuation">(</span>
+      Modifiers<span class="token punctuation">(</span>ABSTRACT <span class="token operator">|</span> DEFAULTPARAM<span class="token operator">/</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">,</span> TypeName<span class="token punctuation">(</span><span class="token string">"Maybe"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> List<span class="token punctuation">(</span>
+        TypeDef<span class="token punctuation">(</span>
+          Modifiers<span class="token punctuation">(</span>PARAM<span class="token punctuation">)</span><span class="token punctuation">,</span> TypeName<span class="token punctuation">(</span><span class="token string">"A"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> List<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> TypeBoundsTree<span class="token punctuation">(</span>
+            EmptyTree<span class="token punctuation">,</span> EmptyTree
+          <span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+      <span class="token punctuation">)</span><span class="token punctuation">,</span> Template<span class="token punctuation">(</span></code></pre>
+<p>This may be a little intimidating, but the most important part is to
+take note of the first few lines. Our <code>trait</code> is essentially represented as -</p>
+<pre class="language-scala"><code class="language-scala">List<span class="token punctuation">(</span>Expr<span class="token punctuation">(</span>ClassDef<span class="token punctuation">(</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span></code></pre>
+<p>So let's match on that case, failing for other trees which we won't handle at the moment -</p>
+<pre class="language-scala"><code class="language-scala"><span class="token keyword">object</span> ADT <span class="token punctuation">{</span>
+
+  <span class="token keyword">val</span> MACRO_NAME <span class="token operator">=</span> <span class="token string">"@ADT"</span>
+
+  <span class="token keyword">def</span> impl<span class="token punctuation">(</span>c<span class="token operator">:</span> whitebox<span class="token punctuation">.</span>Context<span class="token punctuation">)</span><span class="token punctuation">(</span>annottees<span class="token operator">:</span> c<span class="token punctuation">.</span>Expr<span class="token punctuation">[</span><span class="token builtin">Any</span><span class="token punctuation">]</span><span class="token operator">*</span><span class="token punctuation">)</span><span class="token operator">:</span> c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span>Tree <span class="token operator">=</span> <span class="token punctuation">{</span>
+    <span class="token keyword">import</span> <span class="token namespace">c<span class="token punctuation">.</span>universe<span class="token punctuation">.</span></span>_
+
+    <span class="token keyword">def</span> fail<span class="token punctuation">(</span>msg<span class="token operator">:</span> <span class="token builtin">String</span><span class="token punctuation">)</span> <span class="token operator">=</span> c<span class="token punctuation">.</span>abort<span class="token punctuation">(</span>c<span class="token punctuation">.</span>enclosingPosition<span class="token punctuation">,</span> msg<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> run<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">:</span> Tree <span class="token operator">=</span> annottees <span class="token keyword">match</span> <span class="token punctuation">{</span>
+      <span class="token comment">// @ADT trait/class Foo { ... }</span>
+      <span class="token keyword">case</span> List<span class="token punctuation">(</span>Expr<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+
+      <span class="token keyword">case</span> _ <span class="token keyword">=></span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"Invalid </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> usage"</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    run<span class="token punctuation">(</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>You'll also notice that I'm defining <code>defs</code> within our <code>impl</code> method instead of
+outside of it. The main reason for this is that it's much simpler to re-use the
+names imported from <code>c.universe._</code>; otherwise, we'd have to pass <code>c</code> around to
+all of the helper methods.</p>
+<p>Now let's start deconstructing the AST and inspecting it. First, we'll
+assert that the class we're dealing with is <em>actually</em> a trait.</p>
+<pre class="language-scala"><code class="language-scala">    <span class="token keyword">def</span> run<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">:</span> Tree <span class="token operator">=</span> annottees <span class="token keyword">match</span> <span class="token punctuation">{</span>
+      <span class="token comment">// @ADT trait Foo { ... }</span>
+      <span class="token keyword">case</span> List<span class="token punctuation">(</span>Expr<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">=></span> runClass<span class="token punctuation">(</span>cls<span class="token punctuation">)</span>
+
+      <span class="token keyword">case</span> _ <span class="token keyword">=></span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"Invalid </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> usage"</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">def</span> runClass<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+      <span class="token keyword">val</span> ClassDef<span class="token punctuation">(</span>clsMods<span class="token punctuation">,</span> clsName<span class="token punctuation">,</span> clsParams<span class="token punctuation">,</span> clsTemplate<span class="token punctuation">)</span> <span class="token operator">=</span> cls
+      <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>clsMods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">)</span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> requires trait"</span></span><span class="token punctuation">)</span>
+      <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+    <span class="token punctuation">}</span></code></pre>
+<p>Now we're at the point where we'll need to inspect our input AST (which we printed
+earlier) to see how our constructors (<code>Just(a: A)</code> and <code>Nix</code>) are appearing.</p>
+<pre class="language-scala"><code class="language-scala">    <span class="token keyword">def</span> runClass<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+      <span class="token keyword">val</span> ClassDef<span class="token punctuation">(</span>clsMods<span class="token punctuation">,</span> clsName<span class="token punctuation">,</span> clsParams<span class="token punctuation">,</span> clsTemplate<span class="token punctuation">)</span> <span class="token operator">=</span> cls
+      <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>clsMods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">)</span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> requires trait"</span></span><span class="token punctuation">)</span>
+
+      clsTemplate<span class="token punctuation">.</span>body<span class="token punctuation">.</span>zipWithIndex<span class="token punctuation">.</span>foreach <span class="token punctuation">{</span> <span class="token keyword">case</span> <span class="token punctuation">(</span>part<span class="token punctuation">,</span> i<span class="token punctuation">)</span> <span class="token keyword">=></span>
+        println<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"part </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">i</span></span><span class="token string">; </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">showRaw<span class="token punctuation">(</span>part<span class="token punctuation">)</span></span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">)</span>
+      <span class="token punctuation">}</span>
+      <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+    <span class="token punctuation">}</span></code></pre>
+<pre class="language-text"><code class="language-text">> test
+part 0; DefDef(Modifiers(), TermName("$init$"), List(), List(List()), TypeTree(), Block(List(), Literal(Constant(()))))
+part 1; Apply(Ident(TermName("Just")), List(Typed(Ident(TermName("a")), Ident(TypeName("A")))))
+part 2; Ident(TermName("Nix"))</code></pre>
+<p>So there's a special <code>$init$</code> method, which we'll want to ignore, and then we have our
+constructors. Scala sees the <code>Just(a: A)</code> as an <code>Apply</code> and the <code>Nix</code> as a simple <code>Ident</code>.
+So we can just pick out the parts that we need.</p>
+<pre class="language-scala"><code class="language-scala">    <span class="token keyword">def</span> runClass<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+      <span class="token keyword">val</span> ClassDef<span class="token punctuation">(</span>clsMods<span class="token punctuation">,</span> clsName<span class="token punctuation">,</span> clsParams<span class="token punctuation">,</span> clsTemplate<span class="token punctuation">)</span> <span class="token operator">=</span> cls
+      <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>clsMods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">)</span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> requires trait"</span></span><span class="token punctuation">)</span>
+
+      <span class="token keyword">val</span> ctors <span class="token operator">=</span> clsTemplate<span class="token punctuation">.</span>body<span class="token punctuation">.</span>collect <span class="token punctuation">{</span>
+        <span class="token keyword">case</span> Apply<span class="token punctuation">(</span>Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> args<span class="token punctuation">)</span>
+        <span class="token keyword">case</span> Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> Nil<span class="token punctuation">)</span>
+      <span class="token punctuation">}</span>
+
+      ctors<span class="token punctuation">.</span>foreach <span class="token punctuation">{</span> <span class="token keyword">case</span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> args<span class="token punctuation">)</span> <span class="token keyword">=></span> println<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">name</span></span><span class="token string">: </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">showRaw<span class="token punctuation">(</span>args<span class="token punctuation">)</span></span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">)</span> <span class="token punctuation">}</span>
+
+      <span class="token operator">?</span><span class="token operator">?</span><span class="token operator">?</span>
+    <span class="token punctuation">}</span></code></pre>
+<pre class="language-text"><code class="language-text">> test
+Just: List(Typed(Ident(TermName("a")), Ident(TypeName("A"))))
 Nix: List()</code></pre>
-<p>Ok, we see what we have to work with, so let’s stub out our resulting trait and companion object using <em>quasiquotes</em> (<code>q"..."</code> syntax). Quasiquotes essentially take Scala-like syntax inside of a quasiquote string and generate an AST from it. This is particularly useful so you don’t have to manually construct all of the AST trees yourself. While there will be plenty of times you <em>will</em> need to construct ASTs manually, using quasiquotes makes the entire process much simpler.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb22-1" title="1">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {</a>
-<a class="sourceLine" id="cb22-2" title="2">      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls</a>
-<a class="sourceLine" id="cb22-3" title="3">      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)</a>
-<a class="sourceLine" id="cb22-4" title="4"></a>
-<a class="sourceLine" id="cb22-5" title="5">      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {</a>
-<a class="sourceLine" id="cb22-6" title="6">        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; (name, args)</a>
-<a class="sourceLine" id="cb22-7" title="7">        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; (name, Nil)</a>
-<a class="sourceLine" id="cb22-8" title="8">      }</a>
-<a class="sourceLine" id="cb22-9" title="9"></a>
-<a class="sourceLine" id="cb22-10" title="10">      q<span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb22-11" title="11">        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]</a>
-<a class="sourceLine" id="cb22-12" title="12">        <span class="kw">object</span> $clsName {</a>
-<a class="sourceLine" id="cb22-13" title="13">          <span class="co">// TODO</span></a>
-<a class="sourceLine" id="cb22-14" title="14">        }</a>
-<a class="sourceLine" id="cb22-15" title="15">      <span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb22-16" title="16">    }</a></code></pre></div>
-<p>The <code>..$clsParams</code> syntax in the quasiquotes expands <code>List</code> values for you. In this case, the <code>clsParams</code> is a <code>List[TypeDef]</code>, so it will automatically turn that into a list of type parameters. The <code>..</code> technique in quasiquotes is invaluable to making AST constructing less painful.</p>
-<pre class="text"><code>&gt; test
+<p>Ok, we see what we have to work with, so let's stub out our resulting
+trait and companion object using <em>quasiquotes</em> (<code>q&quot;...&quot;</code> syntax).
+Quasiquotes essentially take Scala-like syntax inside of a quasiquote string
+and generate an AST from it. This is particularly useful so you don't have to
+manually construct all of the AST trees yourself. While there will be plenty
+of times you <em>will</em> need to construct ASTs manually, using quasiquotes makes the
+entire process much simpler.</p>
+<pre class="language-scala"><code class="language-scala">    <span class="token keyword">def</span> runClass<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+      <span class="token keyword">val</span> ClassDef<span class="token punctuation">(</span>clsMods<span class="token punctuation">,</span> clsName<span class="token punctuation">,</span> clsParams<span class="token punctuation">,</span> clsTemplate<span class="token punctuation">)</span> <span class="token operator">=</span> cls
+      <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>clsMods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">)</span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> requires trait"</span></span><span class="token punctuation">)</span>
+
+      <span class="token keyword">val</span> ctors <span class="token operator">=</span> clsTemplate<span class="token punctuation">.</span>body<span class="token punctuation">.</span>collect <span class="token punctuation">{</span>
+        <span class="token keyword">case</span> Apply<span class="token punctuation">(</span>Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> args<span class="token punctuation">)</span>
+        <span class="token keyword">case</span> Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> Nil<span class="token punctuation">)</span>
+      <span class="token punctuation">}</span>
+
+      <span class="token string-interpolation"><span class="token id function">q</span><span class="token string">"""
+        sealed trait </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsParams</span></span><span class="token string">]
+        object </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string"> {
+          // TODO
+        }
+      """</span></span>
+    <span class="token punctuation">}</span></code></pre>
+<p>The <code>..$clsParams</code> syntax in the quasiquotes expands <code>List</code> values for you.
+In this case, the <code>clsParams</code> is a <code>List[TypeDef]</code>, so it will automatically
+turn that into a list of type parameters. The <code>..</code> technique in quasiquotes is
+invaluable to making AST constructing less painful.</p>
+<pre class="language-text"><code class="language-text">> test
 [error]  found   : c.universe.TypeName
 [error]  required: c.universe.TermName
 [error]         object $clsName {
 [error]                 ^</code></pre>
-<p>Oops, it seems we need to use <code>TermName</code> for an <code>object</code> name. Converting between <code>TypeName</code> and <code>TermName</code> is pretty simple; just use the <code>.toTypeName</code> or <code>.toTermName</code> method.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb24-1" title="1">      q<span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb24-2" title="2">        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]</a>
-<a class="sourceLine" id="cb24-3" title="3">        <span class="kw">object</span> ${clsName.<span class="fu">toTermName</span>} {</a>
-<a class="sourceLine" id="cb24-4" title="4">          <span class="co">// TODO</span></a>
-<a class="sourceLine" id="cb24-5" title="5">        }</a>
-<a class="sourceLine" id="cb24-6" title="6">      <span class="st">&quot;&quot;&quot;</span></a></code></pre></div>
-<pre class="text"><code>&gt; test
+<p>Oops, it seems we need to use <code>TermName</code> for an <code>object</code> name.
+Converting between <code>TypeName</code> and <code>TermName</code> is pretty simple; just use the
+<code>.toTypeName</code> or <code>.toTermName</code> method.</p>
+<pre class="language-scala"><code class="language-scala">      <span class="token string-interpolation"><span class="token id function">q</span><span class="token string">"""
+        sealed trait </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsParams</span></span><span class="token string">]
+        object </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">clsName<span class="token punctuation">.</span>toTermName</span><span class="token punctuation">}</span></span><span class="token string"> {
+          // TODO
+        }
+      """</span></span></code></pre>
+<pre class="language-text"><code class="language-text">> test
 [error] ADTSpec.scala:10: not found: value Just
 [error]     Just(0) == Just(0)
 [error]     ^</code></pre>
-<p>Ok, this is good, we just need to actually generate the appropriate classes so we have <code>Just</code> and <code>Nix</code> in scope.</p>
-<p>If we look back at our input AST, we can see how the trait’s type parameters are represented -</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb26-1" title="1">        <span class="fu">TypeDef</span>(</a>
-<a class="sourceLine" id="cb26-2" title="2">          <span class="fu">Modifiers</span>(PARAM), <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>), List(), <span class="fu">TypeBoundsTree</span>(</a>
-<a class="sourceLine" id="cb26-3" title="3">            EmptyTree, EmptyTree</a>
-<a class="sourceLine" id="cb26-4" title="4">          )</a>
-<a class="sourceLine" id="cb26-5" title="5">        )</a></code></pre></div>
+<p>Ok, this is good, we just need to actually generate the appropriate classes so we
+have <code>Just</code> and <code>Nix</code> in scope.</p>
+<p>If we look back at our input AST, we can see how the trait's type parameters are
+represented -</p>
+<pre class="language-scala"><code class="language-scala">        TypeDef<span class="token punctuation">(</span>
+          Modifiers<span class="token punctuation">(</span>PARAM<span class="token punctuation">)</span><span class="token punctuation">,</span> TypeName<span class="token punctuation">(</span><span class="token string">"A"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> List<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> TypeBoundsTree<span class="token punctuation">(</span>
+            EmptyTree<span class="token punctuation">,</span> EmptyTree
+          <span class="token punctuation">)</span>
+        <span class="token punctuation">)</span></code></pre>
 <p>So we can get a list of the type parameters from the <code>clsParams</code> -</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb27-1" title="1">      <span class="kw">val</span> typeParams = clsParams.<span class="fu">collect</span> {</a>
-<a class="sourceLine" id="cb27-2" title="2">        <span class="kw">case</span> t: TypeDef <span class="kw">if</span> t.<span class="fu">mods</span>.<span class="fu">hasFlag</span>(Flag.<span class="fu">PARAM</span>) =&gt; t.<span class="fu">name</span></a>
-<a class="sourceLine" id="cb27-3" title="3">      }</a></code></pre></div>
-<p>Now, before we actually start writing the code that needs to construct the appropriate ASTs, we should probably know what we want our ASTs to look like. Generally, the best way to do this is to use <code>scalac</code> to print the trees. So let’s write the following to a new file, <strong>expected.scala</strong>. You can then use my <a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/scalac-ast">scalac-ast</a> script which simplifies printing trees with <code>scalac</code>.</p>
-<pre class="text"><code>% cat expected.scala
+<pre class="language-scala"><code class="language-scala">      <span class="token keyword">val</span> typeParams <span class="token operator">=</span> clsParams<span class="token punctuation">.</span>collect <span class="token punctuation">{</span>
+        <span class="token keyword">case</span> t<span class="token operator">:</span> TypeDef <span class="token keyword">if</span> t<span class="token punctuation">.</span>mods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>PARAM<span class="token punctuation">)</span> <span class="token keyword">=></span> t<span class="token punctuation">.</span>name
+      <span class="token punctuation">}</span></code></pre>
+<p>Now, before we actually start writing the code that needs to construct the
+appropriate ASTs, we should probably know what we want our ASTs to look like.
+Generally, the best way to do this is to use <code>scalac</code> to print the trees. So let's
+write the following to a new file, <strong>expected.scala</strong>.
+You can then use my
+<a href="https://github.com/carymrobbins/dotfiles/blob/master/bin/scalac-ast">scalac-ast</a>
+script which simplifies printing trees with <code>scalac</code>.</p>
+<pre class="language-text"><code class="language-text">% cat expected.scala
 sealed trait Maybe[+A]
 object Maybe {
   final case class Just[+A](a: A) extends Maybe[A]
   case object Nix extends Maybe[Nothing]
 }
 
-% scalac-ast expected.scala &gt; expected.ast
+% scalac-ast expected.scala > expected.ast
 
-% pprint-parens.hs &lt; expected.ast &gt; expected.ast.pretty
+% pprint-parens.hs < expected.ast > expected.ast.pretty
 
 % head -n10 expected.ast.pretty
 [[syntax trees at end of parser]]// Scala source: expected.scala
 PackageDef(
   Ident(
-    TermName(&quot;&lt;empty&gt;&quot;)
+    TermName("<empty>")
   ), List(
     ClassDef(
       Modifiers(ABSTRACT | INTERFACE | SEALED | DEFAULTPARAM/TRAIT), TypeName(
-        &quot;Maybe&quot;
+        "Maybe"
       ), List(
         TypeDef(</code></pre>
-<p>If we look for <code>CASEACCESSOR</code>, we can find how to construct the appropriate AST for case class arguments -</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb29-1" title="1">                <span class="fu">ValDef</span>(</a>
-<a class="sourceLine" id="cb29-2" title="2">                  <span class="fu">Modifiers</span>(CASEACCESSOR | PARAMACCESSOR), <span class="fu">TermName</span>(<span class="st">&quot;a&quot;</span>), <span class="fu">Ident</span>(</a>
-<a class="sourceLine" id="cb29-3" title="3">                    <span class="fu">TypeName</span>(<span class="st">&quot;A&quot;</span>)</a>
-<a class="sourceLine" id="cb29-4" title="4">                  ), EmptyTree</a>
-<a class="sourceLine" id="cb29-5" title="5">                ), <span class="fu">DefDef</span>(</a></code></pre></div>
-<p>Now we have enough information to write a function which can construct the AST for a case class.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb30-1" title="1">    <span class="kw">def</span> <span class="fu">runClass</span>(cls: ClassDef) = {</a>
-<a class="sourceLine" id="cb30-2" title="2">      <span class="kw">val</span> <span class="fu">ClassDef</span>(clsMods, clsName, clsParams, clsTemplate) = cls</a>
-<a class="sourceLine" id="cb30-3" title="3">      <span class="kw">if</span> (!clsMods.<span class="fu">hasFlag</span>(Flag.<span class="fu">TRAIT</span>)) <span class="fu">fail</span>(s<span class="st">&quot;$MACRO_NAME requires trait&quot;</span>)</a>
-<a class="sourceLine" id="cb30-4" title="4"></a>
-<a class="sourceLine" id="cb30-5" title="5">      <span class="kw">val</span> typeParams = clsParams.<span class="fu">collect</span> {</a>
-<a class="sourceLine" id="cb30-6" title="6">        <span class="kw">case</span> t: TypeDef <span class="kw">if</span> t.<span class="fu">mods</span>.<span class="fu">hasFlag</span>(Flag.<span class="fu">PARAM</span>) =&gt; t.<span class="fu">name</span></a>
-<a class="sourceLine" id="cb30-7" title="7">      }</a>
-<a class="sourceLine" id="cb30-8" title="8"></a>
-<a class="sourceLine" id="cb30-9" title="9">      <span class="kw">def</span> <span class="fu">mkCaseClass</span>(name: TermName, args: List[Tree]) = {</a>
-<a class="sourceLine" id="cb30-10" title="10">        <span class="co">// Get the constructor arguments into a form we can deal with.</span></a>
-<a class="sourceLine" id="cb30-11" title="11">        <span class="kw">val</span> myArgs: List[(TermName, TypeName)] = args.<span class="fu">map</span> {</a>
-<a class="sourceLine" id="cb30-12" title="12">          <span class="kw">case</span> <span class="fu">Typed</span>(<span class="fu">Ident</span>(name: TermName), <span class="fu">Ident</span>(typ: TypeName)) =&gt; (name, typ)</a>
-<a class="sourceLine" id="cb30-13" title="13">          <span class="kw">case</span> other =&gt; <span class="fu">fail</span>(s<span class="st">&quot;Unsupported constructor argument: $other&quot;</span>)</a>
-<a class="sourceLine" id="cb30-14" title="14">        }</a>
-<a class="sourceLine" id="cb30-15" title="15">        <span class="co">// Keep track of the types used by those arguments so we can determine</span></a>
-<a class="sourceLine" id="cb30-16" title="16">        <span class="co">// which ones are used for extending the trait.</span></a>
-<a class="sourceLine" id="cb30-17" title="17">        <span class="kw">val</span> myArgTypes: List[TypeName] = myArgs.<span class="fu">map</span>(_._<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb30-18" title="18">        <span class="co">// If this case class uses one of the trait's type parameters, have the</span></a>
-<a class="sourceLine" id="cb30-19" title="19">        <span class="co">// case class extend from the trait using that type parameter. Otherwise,</span></a>
-<a class="sourceLine" id="cb30-20" title="20">        <span class="co">// use Nothing in that type parameter's place.</span></a>
-<a class="sourceLine" id="cb30-21" title="21">        <span class="kw">val</span> parentTypeParams = typeParams.<span class="fu">map</span>(</a>
-<a class="sourceLine" id="cb30-22" title="22">          p =&gt; <span class="kw">if</span> (myArgTypes.<span class="fu">contains</span>(p)) <span class="fu">Ident</span>(p) <span class="kw">else</span> <span class="fu">Ident</span>(<span class="fu">TypeName</span>(<span class="st">&quot;Nothing&quot;</span>))</a>
-<a class="sourceLine" id="cb30-23" title="23">        )</a>
-<a class="sourceLine" id="cb30-24" title="24">        <span class="co">// Construct the type parameters for this case class.</span></a>
-<a class="sourceLine" id="cb30-25" title="25">        <span class="kw">val</span> myTypeParams = myArgTypes.<span class="fu">map</span>(</a>
-<a class="sourceLine" id="cb30-26" title="26">          p =&gt; <span class="fu">TypeDef</span>(<span class="fu">Modifiers</span>(Flag.<span class="fu">PARAM</span>), p, Nil, <span class="fu">TypeBoundsTree</span>(EmptyTree, EmptyTree))</a>
-<a class="sourceLine" id="cb30-27" title="27">        )</a>
-<a class="sourceLine" id="cb30-28" title="28">        <span class="co">// Construct the arguments for this case class.</span></a>
-<a class="sourceLine" id="cb30-29" title="29">        <span class="kw">val</span> myCtorArgs = myArgs.<span class="fu">map</span> { <span class="kw">case</span> (argName, argType) =&gt;</a>
-<a class="sourceLine" id="cb30-30" title="30">          <span class="fu">ValDef</span>(</a>
-<a class="sourceLine" id="cb30-31" title="31">            <span class="fu">Modifiers</span>(Flag.<span class="fu">CASEACCESSOR</span> | Flag.<span class="fu">PARAMACCESSOR</span>),</a>
-<a class="sourceLine" id="cb30-32" title="32">            argName, <span class="fu">Ident</span>(argType), EmptyTree</a>
-<a class="sourceLine" id="cb30-33" title="33">          )</a>
-<a class="sourceLine" id="cb30-34" title="34">        }</a>
-<a class="sourceLine" id="cb30-35" title="35">        q<span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb30-36" title="36">            <span class="kw">final</span> <span class="kw">case</span> <span class="kw">class</span> ${name.<span class="fu">toTypeName</span>}[..$myTypeParams](..$myCtorArgs)</a>
-<a class="sourceLine" id="cb30-37" title="37">              <span class="kw">extends</span> $clsName[..$parentTypeParams]</a>
-<a class="sourceLine" id="cb30-38" title="38">        <span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb30-39" title="39">      }</a></code></pre></div>
+<p>If we look for <code>CASEACCESSOR</code>, we can find how to construct the appropriate AST
+for case class arguments -</p>
+<pre class="language-scala"><code class="language-scala">                ValDef<span class="token punctuation">(</span>
+                  Modifiers<span class="token punctuation">(</span>CASEACCESSOR <span class="token operator">|</span> PARAMACCESSOR<span class="token punctuation">)</span><span class="token punctuation">,</span> TermName<span class="token punctuation">(</span><span class="token string">"a"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> Ident<span class="token punctuation">(</span>
+                    TypeName<span class="token punctuation">(</span><span class="token string">"A"</span><span class="token punctuation">)</span>
+                  <span class="token punctuation">)</span><span class="token punctuation">,</span> EmptyTree
+                <span class="token punctuation">)</span><span class="token punctuation">,</span> DefDef<span class="token punctuation">(</span></code></pre>
+<p>Now we have enough information to write a function which can construct the
+AST for a case class.</p>
+<pre class="language-scala"><code class="language-scala">    <span class="token keyword">def</span> runClass<span class="token punctuation">(</span>cls<span class="token operator">:</span> ClassDef<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+      <span class="token keyword">val</span> ClassDef<span class="token punctuation">(</span>clsMods<span class="token punctuation">,</span> clsName<span class="token punctuation">,</span> clsParams<span class="token punctuation">,</span> clsTemplate<span class="token punctuation">)</span> <span class="token operator">=</span> cls
+      <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>clsMods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>TRAIT<span class="token punctuation">)</span><span class="token punctuation">)</span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">MACRO_NAME</span></span><span class="token string"> requires trait"</span></span><span class="token punctuation">)</span>
+
+      <span class="token keyword">val</span> typeParams <span class="token operator">=</span> clsParams<span class="token punctuation">.</span>collect <span class="token punctuation">{</span>
+        <span class="token keyword">case</span> t<span class="token operator">:</span> TypeDef <span class="token keyword">if</span> t<span class="token punctuation">.</span>mods<span class="token punctuation">.</span>hasFlag<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>PARAM<span class="token punctuation">)</span> <span class="token keyword">=></span> t<span class="token punctuation">.</span>name
+      <span class="token punctuation">}</span>
+
+      <span class="token keyword">def</span> mkCaseClass<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">,</span> args<span class="token operator">:</span> List<span class="token punctuation">[</span>Tree<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+        <span class="token comment">// Get the constructor arguments into a form we can deal with.</span>
+        <span class="token keyword">val</span> myArgs<span class="token operator">:</span> List<span class="token punctuation">[</span><span class="token punctuation">(</span>TermName<span class="token punctuation">,</span> TypeName<span class="token punctuation">)</span><span class="token punctuation">]</span> <span class="token operator">=</span> args<span class="token punctuation">.</span>map <span class="token punctuation">{</span>
+          <span class="token keyword">case</span> Typed<span class="token punctuation">(</span>Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span><span class="token punctuation">,</span> Ident<span class="token punctuation">(</span>typ<span class="token operator">:</span> TypeName<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">=></span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> typ<span class="token punctuation">)</span>
+          <span class="token keyword">case</span> other <span class="token keyword">=></span> fail<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token id function">s</span><span class="token string">"Unsupported constructor argument: </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">other</span></span><span class="token string">"</span></span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+        <span class="token comment">// Keep track of the types used by those arguments so we can determine</span>
+        <span class="token comment">// which ones are used for extending the trait.</span>
+        <span class="token keyword">val</span> myArgTypes<span class="token operator">:</span> List<span class="token punctuation">[</span>TypeName<span class="token punctuation">]</span> <span class="token operator">=</span> myArgs<span class="token punctuation">.</span>map<span class="token punctuation">(</span>_<span class="token punctuation">.</span>_2<span class="token punctuation">)</span>
+        <span class="token comment">// If this case class uses one of the trait's type parameters, have the</span>
+        <span class="token comment">// case class extend from the trait using that type parameter. Otherwise,</span>
+        <span class="token comment">// use Nothing in that type parameter's place.</span>
+        <span class="token keyword">val</span> parentTypeParams <span class="token operator">=</span> typeParams<span class="token punctuation">.</span>map<span class="token punctuation">(</span>
+          p <span class="token keyword">=></span> <span class="token keyword">if</span> <span class="token punctuation">(</span>myArgTypes<span class="token punctuation">.</span>contains<span class="token punctuation">(</span>p<span class="token punctuation">)</span><span class="token punctuation">)</span> Ident<span class="token punctuation">(</span>p<span class="token punctuation">)</span> <span class="token keyword">else</span> Ident<span class="token punctuation">(</span>TypeName<span class="token punctuation">(</span><span class="token string">"Nothing"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+        <span class="token comment">// Construct the type parameters for this case class.</span>
+        <span class="token keyword">val</span> myTypeParams <span class="token operator">=</span> myArgTypes<span class="token punctuation">.</span>map<span class="token punctuation">(</span>
+          p <span class="token keyword">=></span> TypeDef<span class="token punctuation">(</span>Modifiers<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>PARAM<span class="token punctuation">)</span><span class="token punctuation">,</span> p<span class="token punctuation">,</span> Nil<span class="token punctuation">,</span> TypeBoundsTree<span class="token punctuation">(</span>EmptyTree<span class="token punctuation">,</span> EmptyTree<span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+        <span class="token comment">// Construct the arguments for this case class.</span>
+        <span class="token keyword">val</span> myCtorArgs <span class="token operator">=</span> myArgs<span class="token punctuation">.</span>map <span class="token punctuation">{</span> <span class="token keyword">case</span> <span class="token punctuation">(</span>argName<span class="token punctuation">,</span> argType<span class="token punctuation">)</span> <span class="token keyword">=></span>
+          ValDef<span class="token punctuation">(</span>
+            Modifiers<span class="token punctuation">(</span>Flag<span class="token punctuation">.</span>CASEACCESSOR <span class="token operator">|</span> Flag<span class="token punctuation">.</span>PARAMACCESSOR<span class="token punctuation">)</span><span class="token punctuation">,</span>
+            argName<span class="token punctuation">,</span> Ident<span class="token punctuation">(</span>argType<span class="token punctuation">)</span><span class="token punctuation">,</span> EmptyTree
+          <span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+        <span class="token string-interpolation"><span class="token id function">q</span><span class="token string">"""
+            final case class </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">name<span class="token punctuation">.</span>toTypeName</span><span class="token punctuation">}</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">myTypeParams</span></span><span class="token string">](..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">myCtorArgs</span></span><span class="token string">)
+              extends </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">parentTypeParams</span></span><span class="token string">]
+        """</span></span>
+      <span class="token punctuation">}</span></code></pre>
 <p>Constructing an AST for a case object is pretty trivial -</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb31-1" title="1">      <span class="kw">def</span> <span class="fu">mkCaseObject</span>(name: TermName) = {</a>
-<a class="sourceLine" id="cb31-2" title="2">        <span class="kw">val</span> parentTypeParams = typeParams.<span class="fu">map</span>(_ =&gt; <span class="fu">Ident</span>(<span class="fu">TypeName</span>(<span class="st">&quot;Nothing&quot;</span>)))</a>
-<a class="sourceLine" id="cb31-3" title="3">        q<span class="st">&quot;case object $name extends $clsName[..$parentTypeParams]&quot;</span></a>
-<a class="sourceLine" id="cb31-4" title="4">      }</a></code></pre></div>
+<pre class="language-scala"><code class="language-scala">      <span class="token keyword">def</span> mkCaseObject<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+        <span class="token keyword">val</span> parentTypeParams <span class="token operator">=</span> typeParams<span class="token punctuation">.</span>map<span class="token punctuation">(</span>_ <span class="token keyword">=></span> Ident<span class="token punctuation">(</span>TypeName<span class="token punctuation">(</span><span class="token string">"Nothing"</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token string-interpolation"><span class="token id function">q</span><span class="token string">"case object </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">name</span></span><span class="token string"> extends </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">parentTypeParams</span></span><span class="token string">]"</span></span>
+      <span class="token punctuation">}</span></code></pre>
 <p>Now we can just call the appropriate function to construct the right trees.</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb32-1" title="1">      <span class="kw">val</span> ctors = clsTemplate.<span class="fu">body</span>.<span class="fu">collect</span> {</a>
-<a class="sourceLine" id="cb32-2" title="2">        <span class="kw">case</span> <span class="fu">Apply</span>(<span class="fu">Ident</span>(name: TermName), args) =&gt; <span class="fu">mkCaseClass</span>(name, args)</a>
-<a class="sourceLine" id="cb32-3" title="3">        <span class="kw">case</span> <span class="fu">Ident</span>(name: TermName) =&gt; <span class="fu">mkCaseObject</span>(name)</a>
-<a class="sourceLine" id="cb32-4" title="4">      }</a>
-<a class="sourceLine" id="cb32-5" title="5"></a>
-<a class="sourceLine" id="cb32-6" title="6">      q<span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb32-7" title="7">        <span class="kw">sealed</span> <span class="kw">trait</span> $clsName[..$clsParams]</a>
-<a class="sourceLine" id="cb32-8" title="8">        <span class="kw">object</span> ${clsName.<span class="fu">toTermName</span>} {</a>
-<a class="sourceLine" id="cb32-9" title="9">          ..$ctors</a>
-<a class="sourceLine" id="cb32-10" title="10">        }</a>
-<a class="sourceLine" id="cb32-11" title="11">      <span class="st">&quot;&quot;&quot;</span></a>
-<a class="sourceLine" id="cb32-12" title="12">    }</a></code></pre></div>
-<p>Whew, alright, let’s run our test again.</p>
-<pre class="text"><code>&gt; test
+<pre class="language-scala"><code class="language-scala">      <span class="token keyword">val</span> ctors <span class="token operator">=</span> clsTemplate<span class="token punctuation">.</span>body<span class="token punctuation">.</span>collect <span class="token punctuation">{</span>
+        <span class="token keyword">case</span> Apply<span class="token punctuation">(</span>Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span> <span class="token keyword">=></span> mkCaseClass<span class="token punctuation">(</span>name<span class="token punctuation">,</span> args<span class="token punctuation">)</span>
+        <span class="token keyword">case</span> Ident<span class="token punctuation">(</span>name<span class="token operator">:</span> TermName<span class="token punctuation">)</span> <span class="token keyword">=></span> mkCaseObject<span class="token punctuation">(</span>name<span class="token punctuation">)</span>
+      <span class="token punctuation">}</span>
+
+      <span class="token string-interpolation"><span class="token id function">q</span><span class="token string">"""
+        sealed trait </span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsName</span></span><span class="token string">[..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">clsParams</span></span><span class="token string">]
+        object </span><span class="token interpolation"><span class="token punctuation">${</span><span class="token expression">clsName<span class="token punctuation">.</span>toTermName</span><span class="token punctuation">}</span></span><span class="token string"> {
+          ..</span><span class="token interpolation"><span class="token punctuation">$</span><span class="token expression">ctors</span></span><span class="token string">
+        }
+      """</span></span>
+    <span class="token punctuation">}</span></code></pre>
+<p>Whew, alright, let's run our test again.</p>
+<pre class="language-text"><code class="language-text">> test
 [info] + @ADT macro.generates Nix singleton: OK, proved property.
 [info] + @ADT macro.generates Just constructor: OK, proved property.
 [info] Passed: Total 2, Failed 0, Errors 0, Passed 2
 [success]
-&gt; </code></pre>
-<h2 id="congratulations">Congratulations!</h2>
-<p>We now have a working macro. However, this code is certainly not perfect. What if you define methods in the trait? What if you define your own companion object? Feel free to try these out yourself and see what happens. Spoiler, it won’t work as you’d want. I’d recommend digging into the <a href="https://github.com/carymrobbins/scala-adt">scala-adt</a> source code to see how this is handled as well as some other features like ADT enums.</p>
+> </code></pre>
+<h2>Congratulations!</h2>
+<p>We now have a working macro. However, this code is certainly not
+perfect. What if you define methods in the trait? What if you define your own
+companion object? Feel free to try these out yourself and see what happens. Spoiler,
+it won't work as you'd want. I'd recommend digging into the <a href="https://github.com/carymrobbins/scala-adt">scala-adt</a>
+source code to see how this is handled as well as some other features like
+ADT enums.</p>
+
+  </div>
+</article>
+
+      </main>
+
+      <footer class="dev-footer">
+        <ul class="social-links">
+  
+  <li>
+    <a class="social-links__badge" href="https://github.com/carymrobbins" title="GitHub" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      <span class="sr-only">GitHub</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://www.linkedin.com/in/carymrobbins" title="LinkedIn" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LinkedIn</title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <span class="sr-only">LinkedIn</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://twitter.com/carymrobbins" title="X / Twitter" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+      <span class="sr-only">X / Twitter</span>
+    </a>
+  </li>
+  
+</ul>
+
+        <div class="dev-footer__copy">&copy; 2026 Cary Robbins. All rights reserved.</div>
+      </footer>
     </div>
   </div>
-  <div id="disqus_thread"></div>
-<script>
-var disqus_config = function () {
-this.page.url = 'http://caryrobbins.com' + '/dev/scala-macros-intro/index.html';
-this.page.identifier = '/dev/scala-macros-intro/index.html';
-};
-(function() { // DON'T EDIT BELOW THIS LINE
-var d = document, s = d.createElement('script');
-s.src = 'https://caryrobbins-com.disqus.com/embed.js';
-s.setAttribute('data-timestamp', +new Date());
-(d.head || d.body).appendChild(s);
-})();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
-</div>
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="../../">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+  <button type="button" id="win95-toggle" class="win95-toggle-btn" aria-label="Toggle 95 mode">
+    <span class="win95-toggle-btn__enter">95</span>
+    <img class="win95-toggle-btn__exit" src="/assets/icons/win95-space.svg" width="24" height="24" alt="" />
+  </button>
+  <script src="/assets/js/win95.js" defer></script>
+</body>
 </html>

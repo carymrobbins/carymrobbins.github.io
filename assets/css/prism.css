@@ -1,0 +1,74 @@
+pre[class*="language-"],
+code[class*="language-"] {
+  color: var(--color-fg);
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--color-fg-muted);
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: var(--color-fg-muted);
+}
+
+.token.keyword,
+.token.selector,
+.token.tag,
+.token.builtin {
+  color: var(--color-accent-dev);
+}
+
+.token.string,
+.token.char,
+.token.attr-value,
+.token.regex {
+  color: var(--color-accent-music);
+}
+
+.token.number,
+.token.boolean,
+.token.constant,
+.token.symbol {
+  color: #c792ea;
+}
+
+.token.function,
+.token.class-name {
+  color: #82aaff;
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: var(--color-fg-muted);
+}
+
+.token.important,
+.token.bold {
+  font-weight: 700;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+/* The two token colors above aren't theme tokens (no dark-mode custom
+   property backs them), so they need their own light-mode swap for
+   contrast on a light background. */
+@media (prefers-color-scheme: light) {
+  body.dev .token.number,
+  body.dev .token.boolean,
+  body.dev .token.constant,
+  body.dev .token.symbol {
+    color: #8a3fa8;
+  }
+
+  body.dev .token.function,
+  body.dev .token.class-name {
+    color: #1a56db;
+  }
+}

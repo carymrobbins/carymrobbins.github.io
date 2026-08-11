@@ -1,83 +1,93 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Installing Guitar Pro on Linux</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Installing Guitar Pro on Linux — Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+  <!-- Loaded first so our own rules below can override its `body`
+       defaults (font-size, font-family) without needing !important —
+       see docs/dev/win95-mode.md. -->
+  <link rel="stylesheet" href="/assets/css/98.win95.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/prism.css">
+  <link rel="stylesheet" href="/assets/css/dev.css">
+</head>
+<body class="dev">
+  <script>
+    try {
+      if (localStorage.getItem("win95") === "1") document.body.classList.add("win95");
+    } catch (e) {}
+  </script>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
-
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="../../">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
+  <div class="window win95-frame">
+    <div class="title-bar">
+      <div class="title-bar-text">Installing Guitar Pro on Linux — Cary Robbins</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close" id="win95-close"></button>
       </div>
-    </nav>
+    </div>
+    <div class="window-body">
+      <header class="dev-header">
+        <a class="dev-header__home" href="/dev/" title="Dev Home">
+          <svg class="dev-header__home-icon dev-header__home-icon--normal" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+          </svg>
+          <img class="dev-header__home-icon dev-header__home-icon--win95" src="/assets/icons/win95-computer.svg" width="24" height="24" alt="" />
+          <span class="sr-only">Dev Home</span>
+        </a>
+        <a class="dev-header__brand" href="/">Cary Robbins</a>
+        <a class="dev-header__music" href="/music" title="Music" aria-label="Music">
+          <img src="/assets/favicon/apple-touch-icon.png" alt="" width="32" height="32">
+        </a>
+      </header>
 
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>Installing Guitar Pro on Linux</h1>
-    </div>
-    <div class="col-md-12">
-      <small>July 24, 2016</small>
-    </div>
-  </div>
-  <hr />
-  <div class="row">
-    <div class="col-md-12">
-      <p>In my specific case, I used Ubuntu 14.04 and Guitar Pro 6.1.9 (r11686).</p>
-<p>First, you’ll need to download the Guitar Pro 6 deb file by logging into the <a href="https://www.guitar-pro.com">Guitar Pro website</a>.</p>
+      <main class="dev-content">
+        <article>
+  <header class="post-header">
+    <h1>Installing Guitar Pro on Linux</h1>
+    <time datetime="2016-07-24">July 24, 2016</time>
+  </header>
+  <div class="post-body">
+    <p>In my specific case, I used Ubuntu 14.04 and Guitar Pro 6.1.9 (r11686).</p>
+<p>First, you'll need to download the Guitar Pro 6 deb file by logging
+into the <a href="https://www.guitar-pro.com">Guitar Pro website</a>.</p>
 <p>Next, drop into the terminal to extract the deb into a temp directory, <code>gp6-tmp</code> -</p>
-<pre class="text"><code>% dpkg-deb -x ~/Downloads/gp6-full-linux-r11686.deb gp6-tmp</code></pre>
-<p>Now you’ll need to extract the control information -</p>
-<pre class="text"><code>% dpkg-deb --control ~/Downloads/gp6-full-linux-r11686.deb gp6-tmp/DEBIAN</code></pre>
-<p>For whatever reason, there are a couple of Mac <code>DS_Store</code> files laying around in the archive, so let’s remove those -</p>
-<pre class="text"><code>% rm gp6-tmp/.DS_Store gp6-tmp/._.DS_Store</code></pre>
-<p>Now, open up the file <code>gp6-tmp/DEBIAN/control</code> in a text editor and find the <code>Depends</code> line. According to <a href="https://doc.ubuntu-fr.org/guitarpro">this wiki post</a>, we need to remove <code>gksu</code> from the dependencies.</p>
-<p>(Note: I’m not sure that you actually need to do this since we end up needing to install <code>gksu</code> anyway to launch the updater.)</p>
-<pre class="text"><code>% grep '^Depends' gp6-tmp/DEBIAN/control
-Depends: gksu, libasound2, libc6 (&gt;= 2.1.3), libglu1-mesa, libportaudio0, libportaudio2, libssl0.9.8, libstdc++6, libxml2, libxslt1.1, zlib1g
+<pre class="language-text"><code class="language-text">% dpkg-deb -x ~/Downloads/gp6-full-linux-r11686.deb gp6-tmp</code></pre>
+<p>Now you'll need to extract the control information -</p>
+<pre class="language-text"><code class="language-text">% dpkg-deb --control ~/Downloads/gp6-full-linux-r11686.deb gp6-tmp/DEBIAN</code></pre>
+<p>For whatever reason, there are a couple of Mac <code>DS_Store</code> files
+laying around in the archive, so let's remove those -</p>
+<pre class="language-text"><code class="language-text">% rm gp6-tmp/.DS_Store gp6-tmp/._.DS_Store</code></pre>
+<p>Now, open up the file <code>gp6-tmp/DEBIAN/control</code> in a text editor
+and find the <code>Depends</code> line. According to
+<a href="https://doc.ubuntu-fr.org/guitarpro">this wiki post</a>,
+we need to remove <code>gksu</code> from the dependencies.</p>
+<p>(Note: I'm not sure that you actually need to do this since we end
+up needing to install <code>gksu</code> anyway to launch the updater.)</p>
+<pre class="language-text"><code class="language-text">% grep '^Depends' gp6-tmp/DEBIAN/control
+Depends: gksu, libasound2, libc6 (>= 2.1.3), libglu1-mesa, libportaudio0, libportaudio2, libssl0.9.8, libstdc++6, libxml2, libxslt1.1, zlib1g
 
 % vim gp6-tmp/DEBIAN/control # Make your edits to remove gksu
 
 % grep '^Depends' gp6-tmp/DEBIAN/control
-Depends: libasound2, libc6 (&gt;= 2.1.3), libglu1-mesa, libportaudio0, libportaudio2, libssl0.9.8, libstdc++6, libxml2, libxslt1.1, zlib1g</code></pre>
+Depends: libasound2, libc6 (>= 2.1.3), libglu1-mesa, libportaudio0, libportaudio2, libssl0.9.8, libstdc++6, libxml2, libxslt1.1, zlib1g</code></pre>
 <p>Now we can build our modified deb and install it -</p>
-<pre class="text"><code>% dpkg -b gp6-tmp gp6-modified.deb
+<pre class="language-text"><code class="language-text">% dpkg -b gp6-tmp gp6-modified.deb
 dpkg-deb: building package `guitarpro6' in `gp6-modified.deb'.
 
 % sudo dpkg -i --force-architecture gp6-modified.deb</code></pre>
 <p>Note that you will probably receive the following errors -</p>
-<pre class="text"><code>dpkg: dependency problems prevent configuration of guitarpro6:
+<pre class="language-text"><code class="language-text">dpkg: dependency problems prevent configuration of guitarpro6:
  guitarpro6 depends on libglu1-mesa.
  guitarpro6 depends on libportaudio0.
  guitarpro6 depends on libportaudio2; however:
@@ -94,46 +104,61 @@ Processing triggers for mime-support (3.54ubuntu1.1) ...
 Errors were encountered while processing:
  guitarpro6</code></pre>
 <p>The following will have <code>apt-get</code> fix the broken package -</p>
-<pre class="text"><code>% sudo apt-get install -f</code></pre>
-<p>From here I was able to launch Guitar Pro just fine. If you have problems launching, you can find the launcher script in <code>/opt/GuitarPro6/launcher.sh</code></p>
-<p>But there’s still one more problem - sound doesn’t seem to work! I’m not sure how to get MIDI output configured, but using the RSE works just fine, you just need to update Guitar Pro. In order to do that, we need to install <code>gksu</code> (which is why I question whether or not we actually needed to remove it from the deps in the first place) -</p>
-<pre class="text"><code>% sudo apt-get install gksu</code></pre>
-<p>If we don’t, we’ll get the following error when attempting to update -</p>
-<pre class="text"><code>Failed to start Guitar Pro Updater</code></pre>
-<p>Once you have <code>gksu</code> installed, open Guitar Pro and choose <strong>Help &gt; Launch Updater</strong> to update and install the RSE sound banks. Once that completes, restart Guitar Pro and audio playback should work.</p>
+<pre class="language-text"><code class="language-text">% sudo apt-get install -f</code></pre>
+<p>From here I was able to launch Guitar Pro just fine. If you have problems launching,
+you can find the launcher script in <code>/opt/GuitarPro6/launcher.sh</code></p>
+<p>But there's still one more problem - sound doesn't seem to work!
+I'm not sure how to get MIDI output configured,
+but using the RSE works just fine, you just need to update Guitar Pro.
+In order to do that, we need to install <code>gksu</code> (which is why I question
+whether or not we actually needed to remove it from the deps in the first place) -</p>
+<pre class="language-text"><code class="language-text">% sudo apt-get install gksu</code></pre>
+<p>If we don't, we'll get the following error when attempting to update -</p>
+<pre class="language-text"><code class="language-text">Failed to start Guitar Pro Updater</code></pre>
+<p>Once you have <code>gksu</code> installed, open Guitar Pro and choose <strong>Help &gt; Launch Updater</strong> to update
+and install the RSE sound banks. Once that completes, restart Guitar Pro
+and audio playback should work.</p>
+
+  </div>
+</article>
+
+      </main>
+
+      <footer class="dev-footer">
+        <ul class="social-links">
+  
+  <li>
+    <a class="social-links__badge" href="https://github.com/carymrobbins" title="GitHub" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      <span class="sr-only">GitHub</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://www.linkedin.com/in/carymrobbins" title="LinkedIn" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LinkedIn</title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <span class="sr-only">LinkedIn</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://twitter.com/carymrobbins" title="X / Twitter" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+      <span class="sr-only">X / Twitter</span>
+    </a>
+  </li>
+  
+</ul>
+
+        <div class="dev-footer__copy">&copy; 2026 Cary Robbins. All rights reserved.</div>
+      </footer>
     </div>
   </div>
-  <div id="disqus_thread"></div>
-<script>
-var disqus_config = function () {
-this.page.url = 'http://caryrobbins.com' + '/dev/guitar-pro-linux/index.html';
-this.page.identifier = '/dev/guitar-pro-linux/index.html';
-};
-(function() { // DON'T EDIT BELOW THIS LINE
-var d = document, s = d.createElement('script');
-s.src = 'https://caryrobbins-com.disqus.com/embed.js';
-s.setAttribute('data-timestamp', +new Date());
-(d.head || d.body).appendChild(s);
-})();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
-</div>
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="../../">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+  <button type="button" id="win95-toggle" class="win95-toggle-btn" aria-label="Toggle 95 mode">
+    <span class="win95-toggle-btn__enter">95</span>
+    <img class="win95-toggle-btn__exit" src="/assets/icons/win95-space.svg" width="24" height="24" alt="" />
+  </button>
+  <script src="/assets/js/win95.js" defer></script>
+</body>
 </html>

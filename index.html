@@ -1,176 +1,50 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Cary Robbins</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — musician and software developer.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="./components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="./components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="./components/bootstrap-social/bootstrap-social.css" />
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/landing.css">
+</head>
+<body>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
+  <span class="hero__brand">Cary Robbins</span>
+  <div class="hero">
+  <a class="hero__half hero__half--music" href="/music" aria-label="Music — Cary Robbins">
+    <video
+      class="hero__media"
+      poster="/assets/video/music-poster.jpg"
+      autoplay muted loop playsinline preload="none"
+      aria-hidden="true"
+    >
+      <source src="/assets/video/music-loop.webm" type="video/webm">
+      <source src="/assets/video/music-loop.mp4" type="video/mp4">
+    </video>
+    <span class="hero__label">MUSIC</span>
+  </a>
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
+  <a class="hero__half hero__half--dev" href="/dev" aria-label="Dev — Cary Robbins">
+    <video
+      class="hero__media"
+      poster="/assets/video/dev-poster.jpg"
+      autoplay muted loop playsinline preload="none"
+      aria-hidden="true"
+    >
+      <source src="/assets/video/dev-loop.webm" type="video/webm">
+      <source src="/assets/video/dev-loop.mp4" type="video/mp4">
+    </video>
+    <span class="hero__label">DEV</span>
+  </a>
 
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="./css/default.css" />
-    <link rel="stylesheet" type="text/css" href="./css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="./">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>Yo!</h1>
-    </div>
-    <div class="col-md-12">
-      <p>
-        Welcome to my rantings about software development and whatever else I feel like.
-      </p>
-      <p>
-        Please note that even though said rantings may appear as advice, it's very possible that
-        you should never take any of it very seriously.  Anything you may encounter is not a
-        reflection of my employer, friends, family, or otherwise any possible or potential reality.
-      </p>
-    </div>
-  </div>
-
-  <hr />
-
-  <div class="row">
-    <div class="col-md-12">
-      <h3>Articles</h3>
-      <ul class="article-list">
-    
-        <li>
-            January 31, 2023 - <a href="./dev/error-state/">Recovering from Errors in the State monad</a>
-        </li>
-    
-        <li>
-            March 25, 2020 - <a href="./dev/overriding-type-class-instances-2/">Overriding Type Class Instances (Part 2)</a>
-        </li>
-    
-        <li>
-            August  9, 2019 - <a href="./dev/overriding-type-class-instances/">Overriding Type Class Instances (Part 1)</a>
-        </li>
-    
-        <li>
-            December 27, 2018 - <a href="./dev/installing-ghc-mod/">Installing ghc-mod for newer GHC versions</a>
-        </li>
-    
-        <li>
-            April 26, 2018 - <a href="./dev/merging-case-classes/">Merging Case Classes with Monoid and Shapeless</a>
-        </li>
-    
-        <li>
-            March 12, 2018 - <a href="./dev/sbt-publishing/">Publishing to Maven Central with SBT</a>
-        </li>
-    
-        <li>
-            August 12, 2016 - <a href="./dev/scala-macros-intro/">Intro to Scala Macros</a>
-        </li>
-    
-        <li>
-            July 24, 2016 - <a href="./dev/guitar-pro-linux/">Installing Guitar Pro on Linux</a>
-        </li>
-    
-        <li>
-            July  7, 2016 - <a href="./dev/java-scala-collections/">Converting Java collections to Scala collections from Java</a>
-        </li>
-    
-        <li>
-            June 10, 2016 - <a href="./dev/hp-stream-wifi/">Fixing Linux Wifi on an HP Stream laptop</a>
-        </li>
-    
-        <li>
-            May 31, 2016 - <a href="./dev/scala-type-curry/">Currying Type Parameters in Scala</a>
-        </li>
-    
-        <li>
-            May 17, 2016 - <a href="./dev/postgres-scripting/">Safe Scripting with PostgreSQL</a>
-        </li>
-    
-        <li>
-            January 26, 2016 - <a href="./dev/postgres-indexes/">PostgreSQL Indexes</a>
-        </li>
-    
-</ul>
-
-    </div>
-  </div>
-
-  <hr />
-
-  <div class="row">
-    <div class="col-md-3">
-      <img src="./images/hires-profile.jpg" width="200" style="border-radius: 10px" />
-    </div>
-    <div class="col-md-9">
-      <h2>About me</h2>
-      <p>
-        I'm the owner of <b>Estatico Studios, LLC</b>. I provide
-        contract and consulting services writing Rust, C++, Haskell, Kotlin, Scala, TypeScript, SQL, Python, Bash,
-        and whatever else it takes to mov the bits.
-      </p>
-      <p>
-        Check out some of my open source projects on <a href="https://github.com/carymrobbins">GitHub</a>.
-      </p>
-    </div>
-  </div>
-
-  <hr />
-
-  <div class="row">
-    <div class="col-md-12">
-      <p style="text-align: center">
-        This site is generated using
-        <a href="https://jaspervdj.be/hakyll/">Hakyll</a>.
-        The source code can be found
-        <a href="https://github.com/carymrobbins/carymrobbins.github.io/tree/hakyll">here</a>.
-      </p>
-    </div>
-  </div>
+  <div class="hero__seam" aria-hidden="true"></div>
 </div>
 
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="./">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+</body>
 </html>

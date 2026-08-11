@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fixing Linux Wifi on an HP Stream laptop — Cary Robbins</title>
+  <title>Dev — Cary Robbins</title>
   <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
   <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
@@ -28,7 +28,7 @@
 
   <div class="window win95-frame">
     <div class="title-bar">
-      <div class="title-bar-text">Fixing Linux Wifi on an HP Stream laptop — Cary Robbins</div>
+      <div class="title-bar-text">Dev — Cary Robbins</div>
       <div class="title-bar-controls">
         <button aria-label="Minimize"></button>
         <button aria-label="Maximize"></button>
@@ -52,54 +52,105 @@
       </header>
 
       <main class="dev-content">
-        <article>
-  <header class="post-header">
-    <h1>Fixing Linux Wifi on an HP Stream laptop</h1>
-    <time datetime="2016-06-10">June 10, 2016</time>
-  </header>
-  <div class="post-body">
-    <p><strong>TL;DR</strong> - The following gets wifi working well on the HP Stream laptop running
-Ubuntu 14.04.4 LTS -</p>
-<pre><code>$ sudo add-apt-repository ppa:hanipouspilot/rtlwifi
-$ sudo apt-get update
-$ sudo apt-get install rtlwifi-new-dkms linux-firmware
-$ sudo modprobe -r rtl8723be
-$ sudo modprobe -v rtl8723be isp=0 ant_sel=2
-$ echo 'options rtl8723be isp=0 ant_sel=2' | sudo tee /etc/modprobe.d/rtl8723be.conf
-</code></pre>
-<hr>
-<p>I purchased an <a href="http://store.hp.com/us/en/mdp/Laptops/hp-stream-notebook#!&amp;TabName=vao&amp;jumpid=ps_gymaw6xezr&amp;aoid=51319&amp;002=2190637&amp;004=20637427508&amp;005=104331204308&amp;006=123108661148&amp;007=Search&amp;008=&amp;025=c&amp;026=">HP Stream laptop</a>
-for my daughter this past Christmas and she has loved it.  However, I noticed that it seemed to
-run awfully slow for her most of the time.  She had gotten relatively accustomed to it and,
-naturally, this was a nuisance to me.  I convinced her that we should switch to Linux and see
-how it does.  We installed Ubuntu 14.04.4 LTS and performance was great!  She instantly
-noticed the difference and became very excited.  However, as always,
-there was some work to be done.  Wifi was very inconsistent and the signal was extremely low.</p>
-<p>I discovered that there was an <a href="https://github.com/lwfinger/rtlwifi_new">rtlwifi</a> driver available
-that we could build from source; however, this didn't seem to improve anything.  Later, I
-realized that this driver was also managed in an apt repo, so I quickly switched to use the
-PPA -</p>
-<pre><code>$ sudo add-apt-repository ppa:hanipouspilot/rtlwifi
-$ sudo apt-get update
-$ sudo apt-get install rtlwifi-new-dkms linux-firmware
-</code></pre>
-<p>Of course, this didn't really help things - signal was still very low and the connection
-would regularly disconnect.  Upon perusing various forums, I found that someone mentioned
-<a href="http://h30434.www3.hp.com/t5/Notebook-Wireless-and-Networking/Issues-with-HP-Stream-11/td-p/5461096">selecting Antenna 2</a>.
-It took me a while (in spite of the github issue link) to realize how to do this.  The
-key is in setting <code>ant_sel=2</code> in the driver configuration.  We can test it immediately
-without having to reboot -</p>
-<pre><code>$ sudo modprobe -r rtl8723be
-$ sudo modprobe -v rtl8723be isp=0 ant_sel=2
-</code></pre>
-<p>Like magic, once loaded, the wifi signal was very strong and worked as expected.
-To make the configuration permanent upon reboot, we just need to add our settings
-to <code>/etc/modprobe.d/rtl8723be.conf</code> -</p>
-<pre><code>$ echo 'options rtl8723be isp=0 ant_sel=2' | sudo tee /etc/modprobe.d/rtl8723be.conf
-</code></pre>
+        <section class="dev-intro">
+  <h1>Yo!</h1>
+  <p>
+    Welcome to my rantings about software development and whatever else I feel like.
+  </p>
+  <p>
+    Please note that even though said rantings may appear as advice, it's very possible that
+    you should never take any of it very seriously. Anything you may encounter is not a
+    reflection of my employer, friends, family, or otherwise any possible or potential reality.
+  </p>
+</section>
 
+<section class="dev-articles">
+  <h2>Articles</h2>
+  <ul class="post-list">
+    
+    <li class="post-list__item">
+      <span class="post-list__date">January 31, 2023</span>
+      <span class="post-list__title"><a href="/dev/error-state/">Recovering from Errors in the State monad</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">March 25, 2020</span>
+      <span class="post-list__title"><a href="/dev/overriding-type-class-instances-2/">Overriding Type Class Instances (Part 2)</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">August 9, 2019</span>
+      <span class="post-list__title"><a href="/dev/overriding-type-class-instances/">Overriding Type Class Instances (Part 1)</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">December 27, 2018</span>
+      <span class="post-list__title"><a href="/dev/installing-ghc-mod/">Installing ghc-mod for newer GHC versions</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">April 26, 2018</span>
+      <span class="post-list__title"><a href="/dev/merging-case-classes/">Merging Case Classes with Monoid and Shapeless</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">March 12, 2018</span>
+      <span class="post-list__title"><a href="/dev/sbt-publishing/">Publishing to Maven Central with SBT</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">August 12, 2016</span>
+      <span class="post-list__title"><a href="/dev/scala-macros-intro/">Intro to Scala Macros</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">July 24, 2016</span>
+      <span class="post-list__title"><a href="/dev/guitar-pro-linux/">Installing Guitar Pro on Linux</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">July 7, 2016</span>
+      <span class="post-list__title"><a href="/dev/java-scala-collections/">Converting Java collections to Scala collections from Java</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">June 10, 2016</span>
+      <span class="post-list__title"><a href="/dev/hp-stream-wifi/">Fixing Linux Wifi on an HP Stream laptop</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">May 31, 2016</span>
+      <span class="post-list__title"><a href="/dev/scala-type-curry/">Currying Type Parameters in Scala</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">May 17, 2016</span>
+      <span class="post-list__title"><a href="/dev/postgres-scripting/">Safe Scripting with PostgreSQL</a></span>
+    </li>
+    
+    <li class="post-list__item">
+      <span class="post-list__date">January 26, 2016</span>
+      <span class="post-list__title"><a href="/dev/postgres-indexes/">PostgreSQL Indexes</a></span>
+    </li>
+    
+  </ul>
+</section>
+
+<section class="dev-about">
+  <img class="dev-about__photo" src="/images/hires-profile.jpg" alt="Cary Robbins" width="120" height="120">
+  <div class="dev-about__body">
+    <h2>About me</h2>
+    <p>
+      I'm the owner of <strong>Estatico Studios, LLC</strong>. I provide contract and
+      consulting services writing Rust, C++, Haskell, Kotlin, Scala, TypeScript, SQL,
+      Python, Bash, and whatever else it takes to move the bits.
+    </p>
+    <p>
+      Check out some of my open source projects on
+      <a href="https://github.com/carymrobbins" target="_blank" rel="noopener">GitHub</a>.
+    </p>
   </div>
-</article>
+</section>
 
       </main>
 

@@ -1,228 +1,294 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Overriding Type Class Instances (Part 1)</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overriding Type Class Instances (Part 1) — Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+  <!-- Loaded first so our own rules below can override its `body`
+       defaults (font-size, font-family) without needing !important —
+       see docs/dev/win95-mode.md. -->
+  <link rel="stylesheet" href="/assets/css/98.win95.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/prism.css">
+  <link rel="stylesheet" href="/assets/css/dev.css">
+</head>
+<body class="dev">
+  <script>
+    try {
+      if (localStorage.getItem("win95") === "1") document.body.classList.add("win95");
+    } catch (e) {}
+  </script>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
-
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="../../">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
+  <div class="window win95-frame">
+    <div class="title-bar">
+      <div class="title-bar-text">Overriding Type Class Instances (Part 1) — Cary Robbins</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close" id="win95-close"></button>
       </div>
-    </nav>
+    </div>
+    <div class="window-body">
+      <header class="dev-header">
+        <a class="dev-header__home" href="/dev/" title="Dev Home">
+          <svg class="dev-header__home-icon dev-header__home-icon--normal" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+          </svg>
+          <img class="dev-header__home-icon dev-header__home-icon--win95" src="/assets/icons/win95-computer.svg" width="24" height="24" alt="" />
+          <span class="sr-only">Dev Home</span>
+        </a>
+        <a class="dev-header__brand" href="/">Cary Robbins</a>
+        <a class="dev-header__music" href="/music" title="Music" aria-label="Music">
+          <img src="/assets/favicon/apple-touch-icon.png" alt="" width="32" height="32">
+        </a>
+      </header>
 
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>Overriding Type Class Instances (Part 1)</h1>
-    </div>
-    <div class="col-md-12">
-      <small>August  9, 2019</small>
-    </div>
-  </div>
-  <hr />
-  <div class="row">
-    <div class="col-md-12">
-      <p><em>Note that this is now part of a series. When you are done here consider reading <a href="../overriding-type-class-instances-2/">part 2</a> where we extend this technique to support overriding instances for any type class derivable with <code>GHC.Generics</code>.</em></p>
-<hr />
-<p>It’s well known in the Haskell world that type class instances <em>cannot</em> be overridden. When you have an instance in scope, you are stuck with it. Is this a feature? Is this a bug? Maybe either depending on the problem you are facing. I have my own opinions, but let me lay out the case for wanting to be able to override instances.</p>
-<p>Consider the following <em>very simple</em> type class for encoding values to <code>Text</code> -</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">class</span> <span class="dt">Encode</span> a <span class="kw">where</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="ot">  encode ::</span> a <span class="ot">-&gt;</span> <span class="dt">Text</span></a></code></pre></div>
-<p>We’ll define some instances for it -</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Int</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb2-2" title="2">  encode <span class="fu">=</span> Text.pack <span class="fu">.</span> <span class="fu">show</span></a>
-<a class="sourceLine" id="cb2-3" title="3"></a>
-<a class="sourceLine" id="cb2-4" title="4"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Text</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb2-5" title="5">  encode <span class="fu">=</span> <span class="fu">id</span></a></code></pre></div>
-<p>and they’ll do what you expect -</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="fu">%</span> ghci</a>
-<a class="sourceLine" id="cb3-2" title="2"><span class="fu">&gt;</span> encode (<span class="dv">12</span><span class="ot"> ::</span> <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb3-3" title="3"><span class="st">&quot;12&quot;</span></a>
-<a class="sourceLine" id="cb3-4" title="4"><span class="fu">&gt;</span> encode (<span class="st">&quot;foo&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span>)</a>
-<a class="sourceLine" id="cb3-5" title="5"><span class="st">&quot;foo&quot;</span></a></code></pre></div>
-<p>Now let’s say we want to derive an <code>Encode</code> instance for a record type -</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
-<a class="sourceLine" id="cb4-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb4-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb4-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb4-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb4-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>) via <span class="dt">GenericEncode</span> <span class="dt">Rec</span></a></code></pre></div>
-<p>We’ll derive <code>Generic</code> and use a newtype <code>GenericEncode</code> (that we haven’t written yet) along with <code>DerivingVia</code> to use the generically-derived instance for <code>Encode</code>.</p>
-<p>What we’ll want is this behavior -</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="fu">%</span> ghci</a>
-<a class="sourceLine" id="cb5-2" title="2"><span class="fu">&gt;</span> encode (<span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span>)</a>
-<a class="sourceLine" id="cb5-3" title="3"><span class="st">&quot;foo = 12, bar = hi, baz = bye&quot;</span></a></code></pre></div>
-<p>Going over generic derivation should be saved for another post, but I’ll quickly show the code and touch on the relevant parts.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">newtype</span> <span class="dt">GenericEncode</span> a <span class="fu">=</span> <span class="dt">GenericEncode</span> {<span class="ot"> unGenericEncode ::</span> a }</a>
-<a class="sourceLine" id="cb6-2" title="2"></a>
-<a class="sourceLine" id="cb6-3" title="3"><span class="kw">instance</span> (<span class="dt">Generic</span> a, <span class="dt">Encode</span> (<span class="dt">Rep</span> a p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">GenericEncode</span> a) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-4" title="4">  encode <span class="fu">=</span> (encode <span class="fu">@</span>(<span class="dt">Rep</span> a p)) <span class="fu">.</span> from <span class="fu">.</span> unGenericEncode</a>
-<a class="sourceLine" id="cb6-5" title="5"></a>
-<a class="sourceLine" id="cb6-6" title="6"><span class="kw">instance</span> (<span class="dt">Encode</span> (f p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">D</span> x f p) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-7" title="7">  encode (<span class="dt">M1</span> x) <span class="fu">=</span> encode <span class="fu">@</span>(f p) x</a>
-<a class="sourceLine" id="cb6-8" title="8"></a>
-<a class="sourceLine" id="cb6-9" title="9"><span class="kw">instance</span> (<span class="dt">Encode</span> (f p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">C</span> x f p) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-10" title="10">  encode (<span class="dt">M1</span> x) <span class="fu">=</span> encode <span class="fu">@</span>(f p) x</a>
-<a class="sourceLine" id="cb6-11" title="11"></a>
-<a class="sourceLine" id="cb6-12" title="12"><span class="kw">instance</span> (<span class="dt">Encode</span> (a p), <span class="dt">Encode</span> (b p)) <span class="ot">=&gt;</span> <span class="dt">Encode</span> ((a <span class="fu">:*:</span> b) p) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-13" title="13">  encode (a <span class="fu">:*:</span> b) <span class="fu">=</span> (encode <span class="fu">@</span>(a p) a) <span class="fu">&lt;&gt;</span> <span class="st">&quot;, &quot;</span> <span class="fu">&lt;&gt;</span> (encode <span class="fu">@</span>(b p) b)</a>
-<a class="sourceLine" id="cb6-14" title="14"></a>
-<a class="sourceLine" id="cb6-15" title="15"><span class="kw">instance</span> (<span class="dt">Encode</span> t, <span class="dt">Selector</span> s) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">M1</span> <span class="dt">S</span> s (<span class="dt">K1</span> <span class="dt">R</span> t) p) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-16" title="16">  encode m<span class="fu">@</span>(<span class="dt">M1</span> (<span class="dt">K1</span> x)) <span class="fu">=</span> Text.pack (selName m) <span class="fu">&lt;&gt;</span> <span class="st">&quot; = &quot;</span> <span class="fu">&lt;&gt;</span> encode x</a></code></pre></div>
+      <main class="dev-content">
+        <article>
+  <header class="post-header">
+    <h1>Overriding Type Class Instances (Part 1)</h1>
+    <time datetime="2019-08-09">August 9, 2019</time>
+  </header>
+  <div class="post-body">
+    <p><em>Note that this is now part of a series. When you are done here
+consider reading
+<a href="../overriding-type-class-instances-2/">part 2</a>
+where we extend this technique to support overriding instances for any
+type class derivable with <code>GHC.Generics</code>.</em></p>
+<hr>
+<p>It's well known in the Haskell world that type class instances <em>cannot</em>
+be overridden. When you have an instance in scope, you are stuck with
+it. Is this a feature? Is this a bug? Maybe either depending on the
+problem you are facing. I have my own opinions, but let me lay out
+the case for wanting to be able to override instances.</p>
+<p>Consider the following <em>very simple</em> type class for encoding
+values to <code>Text</code> -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">class</span> <span class="token constant">Encode</span> <span class="token hvariable">a</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token operator">::</span> <span class="token hvariable">a</span> <span class="token operator">-></span> <span class="token constant">Text</span></code></pre>
+<p>We'll define some instances for it -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">instance</span> <span class="token constant">Encode</span> <span class="token constant">Int</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token operator">=</span> <span class="token constant">Text</span><span class="token punctuation">.</span><span class="token builtin">pack</span> <span class="token operator">.</span> <span class="token builtin">show</span>
+
+<span class="token keyword">instance</span> <span class="token constant">Encode</span> <span class="token constant">Text</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token operator">=</span> <span class="token builtin">id</span></code></pre>
+<p>and they'll do what you expect -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">%</span> <span class="token hvariable">ghci</span>
+<span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token number">12</span> <span class="token operator">::</span> <span class="token constant">Int</span><span class="token punctuation">)</span>
+<span class="token string">"12"</span>
+<span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token string">"foo"</span> <span class="token operator">::</span> <span class="token constant">Text</span><span class="token punctuation">)</span>
+<span class="token string">"foo"</span></code></pre>
+<p>Now let's say we want to derive an <code>Encode</code> instance for
+a record type -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">data</span> <span class="token constant">Rec</span> <span class="token operator">=</span> <span class="token constant">Rec</span>
+  <span class="token punctuation">{</span> <span class="token hvariable">foo</span> <span class="token operator">::</span> <span class="token constant">Int</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">bar</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">baz</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">}</span> <span class="token keyword">deriving</span> <span class="token hvariable">stock</span> <span class="token punctuation">(</span><span class="token constant">Show</span><span class="token punctuation">,</span> <span class="token constant">Eq</span><span class="token punctuation">,</span> <span class="token constant">Generic</span><span class="token punctuation">)</span>
+    <span class="token keyword">deriving</span> <span class="token punctuation">(</span><span class="token constant">Encode</span><span class="token punctuation">)</span> <span class="token hvariable">via</span> <span class="token constant">GenericEncode</span> <span class="token constant">Rec</span></code></pre>
+<p>We'll derive <code>Generic</code> and use a newtype <code>GenericEncode</code>
+(that we haven't written yet)
+along with <code>DerivingVia</code> to use the generically-derived instance
+for <code>Encode</code>.</p>
+<p>What we'll want is this behavior -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">%</span> <span class="token hvariable">ghci</span>
+<span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Rec</span> <span class="token number">12</span> <span class="token string">"hi"</span> <span class="token string">"bye"</span><span class="token punctuation">)</span>
+<span class="token string">"foo = 12, bar = hi, baz = bye"</span></code></pre>
+<p>Going over generic derivation should be saved for another post, but I'll
+quickly show the code and touch on the relevant parts.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">newtype</span> <span class="token constant">GenericEncode</span> <span class="token hvariable">a</span> <span class="token operator">=</span> <span class="token constant">GenericEncode</span> <span class="token punctuation">{</span> <span class="token hvariable">unGenericEncode</span> <span class="token operator">::</span> <span class="token hvariable">a</span> <span class="token punctuation">}</span>
+
+<span class="token keyword">instance</span> <span class="token punctuation">(</span><span class="token constant">Generic</span> <span class="token hvariable">a</span><span class="token punctuation">,</span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Rep</span> <span class="token hvariable">a</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">GenericEncode</span> <span class="token hvariable">a</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token constant">Rep</span> <span class="token hvariable">a</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">.</span> <span class="token hvariable">from</span> <span class="token operator">.</span> <span class="token hvariable">unGenericEncode</span>
+
+<span class="token keyword">instance</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token constant">D</span> <span class="token hvariable">x</span> <span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token hvariable">x</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token hvariable">x</span>
+
+<span class="token keyword">instance</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token constant">C</span> <span class="token hvariable">x</span> <span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token hvariable">x</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token hvariable">f</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token hvariable">x</span>
+
+<span class="token keyword">instance</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">a</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">b</span> <span class="token hvariable">p</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token hvariable">a</span> <span class="token operator">:*:</span> <span class="token hvariable">b</span><span class="token punctuation">)</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token hvariable">a</span> <span class="token operator">:*:</span> <span class="token hvariable">b</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token hvariable">a</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token hvariable">a</span><span class="token punctuation">)</span> <span class="token operator">&lt;></span> <span class="token string">", "</span> <span class="token operator">&lt;></span> <span class="token punctuation">(</span><span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token hvariable">b</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token hvariable">b</span><span class="token punctuation">)</span>
+
+<span class="token keyword">instance</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token hvariable">t</span><span class="token punctuation">,</span> <span class="token constant">Selector</span> <span class="token hvariable">s</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token constant">S</span> <span class="token hvariable">s</span> <span class="token punctuation">(</span><span class="token constant">K1</span> <span class="token constant">R</span> <span class="token hvariable">t</span><span class="token punctuation">)</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token hvariable">m</span><span class="token operator">@</span><span class="token punctuation">(</span><span class="token constant">M1</span> <span class="token punctuation">(</span><span class="token constant">K1</span> <span class="token hvariable">x</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token constant">Text</span><span class="token punctuation">.</span><span class="token builtin">pack</span> <span class="token punctuation">(</span><span class="token hvariable">selName</span> <span class="token hvariable">m</span><span class="token punctuation">)</span> <span class="token operator">&lt;></span> <span class="token string">" = "</span> <span class="token operator">&lt;></span> <span class="token hvariable">encode</span> <span class="token hvariable">x</span></code></pre>
 <p>Now this <em>just works</em>. Trust me, I swear.</p>
-<p>Ok ok, this is all well and good, but let’s say we don’t like the <code>Encode Text</code> instance. It’s fine in most cases, but our <code>Rec</code> type needs to use a different instance. Do we have to give up on generic derivation and write our <code>Encode Rec</code> instance from scratch?</p>
-<p>Maybe not! Let’s play with an idea.</p>
-<p>Here’s the new <code>Text</code> instance we want to use. We’ll be resorting to the classic <em>newtype trick</em>.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">newtype</span> <span class="dt">Uptext</span> <span class="fu">=</span> <span class="dt">Uptext</span> {<span class="ot"> unUptext ::</span> <span class="dt">Text</span> }</a>
-<a class="sourceLine" id="cb7-2" title="2"></a>
-<a class="sourceLine" id="cb7-3" title="3"><span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Uptext</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb7-4" title="4">  encode <span class="fu">=</span> Text.toUpper</a></code></pre></div>
-<p>Yes, it’s contrived, but you really don’t want me going into the <em>actual</em> use case for this. It’s much messier and this is just easier to think about.</p>
+<p>Ok ok, this is all well and good, but let's say we don't like
+the <code>Encode Text</code> instance. It's fine in most cases, but our
+<code>Rec</code> type needs to use a different instance. Do we have to give up
+on generic derivation and write our <code>Encode Rec</code> instance from scratch?</p>
+<p>Maybe not! Let's play with an idea.</p>
+<p>Here's the new <code>Text</code> instance we want to use. We'll be resorting to
+the classic <em>newtype trick</em>.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">newtype</span> <span class="token constant">Uptext</span> <span class="token operator">=</span> <span class="token constant">Uptext</span> <span class="token punctuation">{</span> <span class="token hvariable">unUptext</span> <span class="token operator">::</span> <span class="token constant">Text</span> <span class="token punctuation">}</span>
+
+<span class="token keyword">instance</span> <span class="token constant">Encode</span> <span class="token constant">Uptext</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token operator">=</span> <span class="token constant">Text</span><span class="token punctuation">.</span><span class="token builtin">toUpper</span></code></pre>
+<p>Yes, it's contrived, but you really don't want me going into the <em>actual</em> use
+case for this. It's much messier and this is just easier to think about.</p>
 <p>With <code>DerivingVia</code>, we could possibly do something like this -</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">deriving</span> via <span class="dt">Encode</span> <span class="dt">Uptext</span> <span class="kw">instance</span> <span class="dt">Encode</span> <span class="dt">Text</span></a></code></pre></div>
-<p>This would work, except - 1. It requires that an <code>Encode Text</code> instance does not already exist 2. Now everyone has to use our instance, and for our purposes we only want <code>Rec</code> to use it.</p>
-<p>Maybe we can somehow embed the instance we want to override directly into the deriving clause. Hmm, how about something like -</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
-<a class="sourceLine" id="cb9-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb9-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb9-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb9-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb9-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>)</a>
-<a class="sourceLine" id="cb9-7" title="7">      via <span class="dt">GenericEncode</span> <span class="dt">Rec</span></a>
-<a class="sourceLine" id="cb9-8" title="8">        <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a></code></pre></div>
-<p>Looks a little funny, but ignoring the clumsiness (and limitations), can this even work?</p>
-<p>First, let’s create some types to get this thing rolling -</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">newtype</span> a <span class="ot">`Using`</span> (<span class="ot">x ::</span> <span class="dt">Constraint</span>) <span class="fu">=</span> <span class="dt">Using</span> a</a>
-<a class="sourceLine" id="cb10-2" title="2">  <span class="kw">deriving</span> stock (<span class="dt">Show</span>)</a>
-<a class="sourceLine" id="cb10-3" title="3"></a>
-<a class="sourceLine" id="cb10-4" title="4"><span class="kw">data</span> a <span class="ot">`As`</span> b <span class="fu">=</span> <span class="dt">As</span></a>
-<a class="sourceLine" id="cb10-5" title="5">  <span class="kw">deriving</span> stock (<span class="dt">Show</span>)</a></code></pre></div>
-<p>So we’ll use <code>Using</code> as a way to embed our overriding constraint into the type of the value we want to encode, and <code>As</code> will be used to tell the instance derivation which instance should be replaced and by which.</p>
-<p>We can even use these types directly in the repl. Here’s the value we’ll want to be dealing with -</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="fu">%</span> ghci</a>
-<a class="sourceLine" id="cb11-2" title="2"><span class="fu">&gt;</span> <span class="fu">:</span>{</a>
-<a class="sourceLine" id="cb11-3" title="3">    <span class="dt">Using</span> <span class="fu">$</span> <span class="dt">GenericEncode</span> <span class="fu">$</span> <span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span></a>
-<a class="sourceLine" id="cb11-4" title="4"><span class="ot">      ::</span> <span class="dt">GenericEncode</span> <span class="dt">Rec</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a>
-<a class="sourceLine" id="cb11-5" title="5">  <span class="fu">:</span>}</a>
-<a class="sourceLine" id="cb11-6" title="6"><span class="dt">Using</span> (<span class="dt">GenericEncode</span> {unGenericEncode <span class="fu">=</span> <span class="dt">Rec</span> {foo <span class="fu">=</span> <span class="dv">12</span>, bar <span class="fu">=</span> <span class="st">&quot;hi&quot;</span>, baz <span class="fu">=</span> <span class="st">&quot;bye&quot;</span>}})</a></code></pre></div>
-<p>At this point, we can use virtually our same generic deriving machinery, just with <code>Using</code> sprinkled throughout to keep track of our overridden instances. I won’t copy pasta all of the boilerplate here (as it’s just uglier versions of the instances you’ve already seen). Instead, I’ll point out the most important bits.</p>
-<p>The “entry point” instance to our generic derivation is almost exactly the same as before, except, as mentioned, with <code>Using</code> stuff sprinkled in everywhere. We’re actually going to rip the <code>Using</code> constraint bits off of the passed in type and apply it to the generic representation <code>Rep a p</code>, and then keep applying it on each of the field selectors so we can pick the right instance.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">instance</span></a>
-<a class="sourceLine" id="cb12-2" title="2">  ( <span class="dt">Generic</span> a</a>
-<a class="sourceLine" id="cb12-3" title="3">  , <span class="dt">Encode</span> (<span class="dt">Rep</span> a p <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d))</a>
-<a class="sourceLine" id="cb12-4" title="4">  ) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (<span class="dt">GenericEncode</span> a <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d)) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb12-5" title="5">  encode (<span class="dt">Using</span> x) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb12-6" title="6">    (encode <span class="fu">@</span>(<span class="dt">Rep</span> a p <span class="ot">`Using`</span> <span class="dt">Encode</span> (c <span class="ot">`As`</span> d)))</a>
-<a class="sourceLine" id="cb12-7" title="7">      <span class="fu">$</span> <span class="dt">Using</span> <span class="fu">@</span>(<span class="dt">Rep</span> a p) <span class="fu">@</span>(<span class="dt">Encode</span> (c <span class="ot">`As`</span> d))</a>
-<a class="sourceLine" id="cb12-8" title="8">      <span class="fu">$</span> from <span class="fu">@</span>a</a>
-<a class="sourceLine" id="cb12-9" title="9">      <span class="fu">$</span> unGenericEncode x</a></code></pre></div>
-<p>So aside from sprinkling in <code>Using</code> everywhere, we’ll need to change the instance that actually does the encoding for each field.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">instance</span> <span class="ot">{-# OVERLAPPING #-}</span></a>
-<a class="sourceLine" id="cb13-2" title="2">  ( <span class="dt">Encode</span> b</a>
-<a class="sourceLine" id="cb13-3" title="3">  , <span class="dt">Coercible</span> a b</a>
-<a class="sourceLine" id="cb13-4" title="4">  ) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (a <span class="ot">`Using`</span> <span class="dt">Encode</span> (a <span class="ot">`As`</span> b))</a>
-<a class="sourceLine" id="cb13-5" title="5">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb13-6" title="6">  encode (<span class="dt">Using</span> a) <span class="fu">=</span> encode <span class="fu">@</span>b (coerce a)</a></code></pre></div>
-<p>Now what we have is an instance that works for a given type <code>a</code> when we want to override it with the instance for type <code>b</code>. And of course, this only works if <code>a</code> is <code>Coercible</code> to <code>b</code>.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">deriving</span> <span class="token hvariable">via</span> <span class="token constant">Encode</span> <span class="token constant">Uptext</span> <span class="token keyword">instance</span> <span class="token constant">Encode</span> <span class="token constant">Text</span></code></pre>
+<p>This would work, except -</p>
+<ol>
+<li>It requires that an <code>Encode Text</code> instance does not already exist</li>
+<li>Now everyone has to use our instance, and for our purposes we only
+want <code>Rec</code> to use it.</li>
+</ol>
+<p>Maybe we can somehow embed the instance we want to override directly into the
+deriving clause. Hmm, how about something like -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">data</span> <span class="token constant">Rec</span> <span class="token operator">=</span> <span class="token constant">Rec</span>
+  <span class="token punctuation">{</span> <span class="token hvariable">foo</span> <span class="token operator">::</span> <span class="token constant">Int</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">bar</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">baz</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">}</span> <span class="token keyword">deriving</span> <span class="token hvariable">stock</span> <span class="token punctuation">(</span><span class="token constant">Show</span><span class="token punctuation">,</span> <span class="token constant">Eq</span><span class="token punctuation">,</span> <span class="token constant">Generic</span><span class="token punctuation">)</span>
+    <span class="token keyword">deriving</span> <span class="token punctuation">(</span><span class="token constant">Encode</span><span class="token punctuation">)</span>
+      <span class="token hvariable">via</span> <span class="token constant">GenericEncode</span> <span class="token constant">Rec</span>
+        `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span></code></pre>
+<p>Looks a little funny, but ignoring the clumsiness (and limitations), can this
+even work?</p>
+<p>First, let's create some types to get this thing rolling -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">newtype</span> <span class="token hvariable">a</span> `<span class="token constant">Using</span>` <span class="token punctuation">(</span><span class="token hvariable">x</span> <span class="token operator">::</span> <span class="token constant">Constraint</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token constant">Using</span> <span class="token hvariable">a</span>
+  <span class="token keyword">deriving</span> <span class="token hvariable">stock</span> <span class="token punctuation">(</span><span class="token constant">Show</span><span class="token punctuation">)</span>
+
+<span class="token keyword">data</span> <span class="token hvariable">a</span> `<span class="token constant">As</span>` <span class="token hvariable">b</span> <span class="token operator">=</span> <span class="token constant">As</span>
+  <span class="token keyword">deriving</span> <span class="token hvariable">stock</span> <span class="token punctuation">(</span><span class="token constant">Show</span><span class="token punctuation">)</span></code></pre>
+<p>So we'll use <code>Using</code> as a way to embed our overriding constraint into the type
+of the value we want to encode, and <code>As</code> will be used to tell the instance
+derivation which instance should be replaced and by which.</p>
+<p>We can even use these types directly in the repl. Here's the value we'll want to
+be dealing with -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">%</span> <span class="token hvariable">ghci</span>
+<span class="token operator">></span> <span class="token operator">:</span><span class="token punctuation">{</span>
+    <span class="token constant">Using</span> <span class="token operator">$</span> <span class="token constant">GenericEncode</span> <span class="token operator">$</span> <span class="token constant">Rec</span> <span class="token number">12</span> <span class="token string">"hi"</span> <span class="token string">"bye"</span>
+      <span class="token operator">::</span> <span class="token constant">GenericEncode</span> <span class="token constant">Rec</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span>
+  <span class="token operator">:</span><span class="token punctuation">}</span>
+<span class="token constant">Using</span> <span class="token punctuation">(</span><span class="token constant">GenericEncode</span> <span class="token punctuation">{</span><span class="token hvariable">unGenericEncode</span> <span class="token operator">=</span> <span class="token constant">Rec</span> <span class="token punctuation">{</span><span class="token hvariable">foo</span> <span class="token operator">=</span> <span class="token number">12</span><span class="token punctuation">,</span> <span class="token hvariable">bar</span> <span class="token operator">=</span> <span class="token string">"hi"</span><span class="token punctuation">,</span> <span class="token hvariable">baz</span> <span class="token operator">=</span> <span class="token string">"bye"</span><span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token punctuation">)</span></code></pre>
+<p>At this point, we can use virtually our same generic deriving machinery, just
+with <code>Using</code> sprinkled throughout to keep track of our overridden instances.
+I won't copy pasta all of the boilerplate here (as it's just uglier versions
+of the instances you've already seen). Instead, I'll point out the most
+important bits.</p>
+<p>The &quot;entry point&quot; instance to our generic derivation is almost exactly the same
+as before, except, as mentioned, with <code>Using</code> stuff sprinkled in everywhere.
+We're actually going to rip the <code>Using</code> constraint bits off of the passed in
+type and apply it to the generic representation <code>Rep a p</code>, and then keep
+applying it on each of the field selectors so we can pick the right instance.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">instance</span>
+  <span class="token punctuation">(</span> <span class="token constant">Generic</span> <span class="token hvariable">a</span>
+  <span class="token punctuation">,</span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Rep</span> <span class="token hvariable">a</span> <span class="token hvariable">p</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">c</span> `<span class="token constant">As</span>` <span class="token hvariable">d</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+  <span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">GenericEncode</span> <span class="token hvariable">a</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">c</span> `<span class="token constant">As</span>` <span class="token hvariable">d</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token hvariable">x</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token punctuation">(</span><span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token constant">Rep</span> <span class="token hvariable">a</span> <span class="token hvariable">p</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">c</span> `<span class="token constant">As</span>` <span class="token hvariable">d</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+      <span class="token operator">$</span> <span class="token constant">Using</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token constant">Rep</span> <span class="token hvariable">a</span> <span class="token hvariable">p</span><span class="token punctuation">)</span> <span class="token operator">@</span><span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">c</span> `<span class="token constant">As</span>` <span class="token hvariable">d</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+      <span class="token operator">$</span> <span class="token hvariable">from</span> <span class="token operator">@</span><span class="token hvariable">a</span>
+      <span class="token operator">$</span> <span class="token hvariable">unGenericEncode</span> <span class="token hvariable">x</span></code></pre>
+<p>So aside from sprinkling in <code>Using</code> everywhere, we'll need to change the
+instance that actually does the encoding for each field.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">instance</span> <span class="token comment">{-# OVERLAPPING #-}</span>
+  <span class="token punctuation">(</span> <span class="token constant">Encode</span> <span class="token hvariable">b</span>
+  <span class="token punctuation">,</span> <span class="token constant">Coercible</span> <span class="token hvariable">a</span> <span class="token hvariable">b</span>
+  <span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">a</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">a</span> `<span class="token constant">As</span>` <span class="token hvariable">b</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+  <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token hvariable">a</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token hvariable">b</span> <span class="token punctuation">(</span><span class="token hvariable">coerce</span> <span class="token hvariable">a</span><span class="token punctuation">)</span></code></pre>
+<p>Now what we have is an instance that works for a given type <code>a</code> when we want to
+override it with the instance for type <code>b</code>. And of course, this only works if
+<code>a</code> is <code>Coercible</code> to <code>b</code>.</p>
 <p>We can even play with this directly!</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="st">&quot;hi&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
-<a class="sourceLine" id="cb14-2" title="2"><span class="st">&quot;HI&quot;</span></a></code></pre></div>
-<p>That’s actually neat on its own.</p>
-<p>Note that we need to make this an <code>OVERLAPPING</code> instance so we can default to a different instance when this one doesn’t apply. Leaving it as it is would give us this when using a non-<code>Text</code> type -</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
-<a class="sourceLine" id="cb15-2" title="2"><span class="fu">error:</span></a>
-<a class="sourceLine" id="cb15-3" title="3">    • <span class="dt">No</span> <span class="kw">instance</span> for (<span class="dt">Encode</span> (<span class="dt">Using</span> <span class="dt">Int</span> (<span class="dt">Encode</span> (<span class="dt">As</span> <span class="dt">Text</span> <span class="dt">Uptext</span>))))</a></code></pre></div>
-<p>Now we’ll define our “default” instance that works when the other doesn’t match -</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">instance</span> <span class="ot">{-# OVERLAPPABLE #-}</span></a>
-<a class="sourceLine" id="cb16-2" title="2">  (<span class="dt">Encode</span> c) <span class="ot">=&gt;</span> <span class="dt">Encode</span> (c <span class="ot">`Using`</span> <span class="dt">Encode</span> (a <span class="ot">`As`</span> b))</a>
-<a class="sourceLine" id="cb16-3" title="3">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb16-4" title="4">  encode (<span class="dt">Using</span> c) <span class="fu">=</span> encode <span class="fu">@</span>c c</a></code></pre></div>
-<p>There’s actually a gotcha here, but I’ll leave that as an exercise for the reader.</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token string">"hi"</span> <span class="token operator">::</span> <span class="token constant">Text</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token string">"HI"</span></code></pre>
+<p>That's actually neat on its own.</p>
+<p>Note that we need to make this an <code>OVERLAPPING</code>
+instance so we can default to a different instance when this one doesn't apply.
+Leaving it as it is would give us this when using a non-<code>Text</code> type -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token number">1</span> <span class="token operator">::</span> <span class="token constant">Int</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token builtin">error</span><span class="token operator">:</span>
+    • <span class="token constant">No</span> <span class="token keyword">instance</span> <span class="token hvariable">for</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token constant">Int</span> <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">As</span> <span class="token constant">Text</span> <span class="token constant">Uptext</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span></code></pre>
+<p>Now we'll define our &quot;default&quot; instance that works when the other doesn't match -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">instance</span> <span class="token comment">{-# OVERLAPPABLE #-}</span>
+  <span class="token punctuation">(</span><span class="token constant">Encode</span> <span class="token hvariable">c</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">c</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token hvariable">a</span> `<span class="token constant">As</span>` <span class="token hvariable">b</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+  <span class="token keyword">where</span>
+  <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token hvariable">c</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token hvariable">encode</span> <span class="token operator">@</span><span class="token hvariable">c</span> <span class="token hvariable">c</span></code></pre>
+<p>There's actually a gotcha here, but I'll leave that as an exercise for the
+reader.</p>
 <p>Moving blissfully along, now the following works -</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb17-1" title="1"><span class="fu">&gt;</span> encode (<span class="dt">Using</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>))</a>
-<a class="sourceLine" id="cb17-2" title="2"><span class="st">&quot;1&quot;</span></a></code></pre></div>
-<p>Ok, so now let’s review our previous deriving hackery -</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb18-1" title="1"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span></a>
-<a class="sourceLine" id="cb18-2" title="2">  {<span class="ot"> foo ::</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb18-3" title="3">  ,<span class="ot"> bar ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb18-4" title="4">  ,<span class="ot"> baz ::</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb18-5" title="5">  } <span class="kw">deriving</span> stock (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb18-6" title="6">    <span class="kw">deriving</span> (<span class="dt">Encode</span>)</a>
-<a class="sourceLine" id="cb18-7" title="7">      via <span class="dt">GenericEncode</span> <span class="dt">Rec</span> <span class="ot">`Using`</span> <span class="dt">Encode</span> (<span class="dt">Text</span> <span class="ot">`As`</span> <span class="dt">Uptext</span>)</a></code></pre></div>
-<p>…but does it work?</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb19-1" title="1"><span class="fu">&gt;</span> encode <span class="fu">$</span> <span class="dt">Rec</span> <span class="dv">12</span> <span class="st">&quot;hi&quot;</span> <span class="st">&quot;bye&quot;</span></a>
-<a class="sourceLine" id="cb19-2" title="2"><span class="st">&quot;foo = 12, bar = HI, baz = BYE&quot;</span></a></code></pre></div>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token punctuation">(</span><span class="token constant">Using</span> <span class="token number">1</span> <span class="token operator">::</span> <span class="token constant">Int</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token string">"1"</span></code></pre>
+<p>Ok, so now let's review our previous deriving hackery -</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token keyword">data</span> <span class="token constant">Rec</span> <span class="token operator">=</span> <span class="token constant">Rec</span>
+  <span class="token punctuation">{</span> <span class="token hvariable">foo</span> <span class="token operator">::</span> <span class="token constant">Int</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">bar</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">,</span> <span class="token hvariable">baz</span> <span class="token operator">::</span> <span class="token constant">Text</span>
+  <span class="token punctuation">}</span> <span class="token keyword">deriving</span> <span class="token hvariable">stock</span> <span class="token punctuation">(</span><span class="token constant">Show</span><span class="token punctuation">,</span> <span class="token constant">Eq</span><span class="token punctuation">,</span> <span class="token constant">Generic</span><span class="token punctuation">)</span>
+    <span class="token keyword">deriving</span> <span class="token punctuation">(</span><span class="token constant">Encode</span><span class="token punctuation">)</span>
+      <span class="token hvariable">via</span> <span class="token constant">GenericEncode</span> <span class="token constant">Rec</span> `<span class="token constant">Using</span>` <span class="token constant">Encode</span> <span class="token punctuation">(</span><span class="token constant">Text</span> `<span class="token constant">As</span>` <span class="token constant">Uptext</span><span class="token punctuation">)</span></code></pre>
+<p>...but does it work?</p>
+<pre class="language-haskell"><code class="language-haskell"><span class="token operator">></span> <span class="token hvariable">encode</span> <span class="token operator">$</span> <span class="token constant">Rec</span> <span class="token number">12</span> <span class="token string">"hi"</span> <span class="token string">"bye"</span>
+<span class="token string">"foo = 12, bar = HI, baz = BYE"</span></code></pre>
 <p>Eureka! It does!</p>
-<p>Is any of this practical? Maybe, maybe not. One important limitation here is that you need to write your generic deriving machinery to deal with this. Also, this implementation doesn’t deal with <em>multiple</em> overrides, it only supports one. However, this could likely be solved without too much effort (type-level lists are the first to come to mind).</p>
-<p>But I think this is a good starting point. From here, we can potentially refine this approach and make it a bit more versatile. It would be pretty exciting to modify it in such a way that <em>doesn’t</em> require the deriving machinery to be aware of our <code>Using</code> and <code>As</code> types. I have some ideas on how to make this a reality, but there’s more experimentin’ to do first!</p>
+<p>Is any of this practical? Maybe, maybe not. One important limitation here is that
+you need to write your generic deriving machinery to deal with this. Also, this
+implementation doesn't deal with <em>multiple</em> overrides, it only supports one.
+However, this could likely be solved without too much effort (type-level lists
+are the first to come to mind).</p>
+<p>But I think this is a good starting point. From here, we can potentially refine this
+approach and make it a bit more versatile. It would be pretty exciting to
+modify it in such a way that <em>doesn't</em> require the deriving machinery to be
+aware of our <code>Using</code> and <code>As</code> types. I have some ideas on how to make this a
+reality, but there's more experimentin' to do first!</p>
 <p>The actual working code for this post can be found <a href="https://github.com/carymrobbins/scoped-instances">here</a>.</p>
-<h2 id="update-3252020">Update 3/25/2020</h2>
-<p>Want to see this approach taken a bit further? Check out <a href="../overriding-type-class-instances-2/">part 2</a> where we extend this technique to support overriding instances for any type class derivable with <code>GHC.Generics</code>.</p>
+<h2>Update 3/25/2020</h2>
+<p>Want to see this approach taken a bit further? Check out
+<a href="../overriding-type-class-instances-2/">part 2</a>
+where we extend this technique to support overriding instances for any
+type class derivable with <code>GHC.Generics</code>.</p>
+
+  </div>
+</article>
+
+      </main>
+
+      <footer class="dev-footer">
+        <ul class="social-links">
+  
+  <li>
+    <a class="social-links__badge" href="https://github.com/carymrobbins" title="GitHub" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      <span class="sr-only">GitHub</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://www.linkedin.com/in/carymrobbins" title="LinkedIn" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LinkedIn</title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <span class="sr-only">LinkedIn</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://twitter.com/carymrobbins" title="X / Twitter" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+      <span class="sr-only">X / Twitter</span>
+    </a>
+  </li>
+  
+</ul>
+
+        <div class="dev-footer__copy">&copy; 2026 Cary Robbins. All rights reserved.</div>
+      </footer>
     </div>
   </div>
-  <div id="disqus_thread"></div>
-<script>
-var disqus_config = function () {
-this.page.url = 'http://caryrobbins.com' + '/dev/overriding-type-class-instances/index.html';
-this.page.identifier = '/dev/overriding-type-class-instances/index.html';
-};
-(function() { // DON'T EDIT BELOW THIS LINE
-var d = document, s = d.createElement('script');
-s.src = 'https://caryrobbins-com.disqus.com/embed.js';
-s.setAttribute('data-timestamp', +new Date());
-(d.head || d.body).appendChild(s);
-})();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
-</div>
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="../../">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+  <button type="button" id="win95-toggle" class="win95-toggle-btn" aria-label="Toggle 95 mode">
+    <span class="win95-toggle-btn__enter">95</span>
+    <img class="win95-toggle-btn__exit" src="/assets/icons/win95-space.svg" width="24" height="24" alt="" />
+  </button>
+  <script src="/assets/js/win95.js" defer></script>
+</body>
 </html>

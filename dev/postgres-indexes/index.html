@@ -1,208 +1,246 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>PostgreSQL Indexes</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PostgreSQL Indexes — Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+  <!-- Loaded first so our own rules below can override its `body`
+       defaults (font-size, font-family) without needing !important —
+       see docs/dev/win95-mode.md. -->
+  <link rel="stylesheet" href="/assets/css/98.win95.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/prism.css">
+  <link rel="stylesheet" href="/assets/css/dev.css">
+</head>
+<body class="dev">
+  <script>
+    try {
+      if (localStorage.getItem("win95") === "1") document.body.classList.add("win95");
+    } catch (e) {}
+  </script>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
-
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="../../">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
+  <div class="window win95-frame">
+    <div class="title-bar">
+      <div class="title-bar-text">PostgreSQL Indexes — Cary Robbins</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close" id="win95-close"></button>
       </div>
-    </nav>
+    </div>
+    <div class="window-body">
+      <header class="dev-header">
+        <a class="dev-header__home" href="/dev/" title="Dev Home">
+          <svg class="dev-header__home-icon dev-header__home-icon--normal" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+          </svg>
+          <img class="dev-header__home-icon dev-header__home-icon--win95" src="/assets/icons/win95-computer.svg" width="24" height="24" alt="" />
+          <span class="sr-only">Dev Home</span>
+        </a>
+        <a class="dev-header__brand" href="/">Cary Robbins</a>
+        <a class="dev-header__music" href="/music" title="Music" aria-label="Music">
+          <img src="/assets/favicon/apple-touch-icon.png" alt="" width="32" height="32">
+        </a>
+      </header>
 
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>PostgreSQL Indexes</h1>
-    </div>
-    <div class="col-md-12">
-      <small>January 26, 2016</small>
-    </div>
-  </div>
-  <hr />
-  <div class="row">
-    <div class="col-md-12">
-      <p>Many times, while we are creating our schemas, we preemptively add indexes to ensure our queries will be blazingly fast before we even start writing them. But come to find out, not only does this rarely work, but you end up with false expectations regarding performance.</p>
-<p>Let’s start with the following schema -</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">create</span> <span class="kw">table</span> account(</a>
-<a class="sourceLine" id="cb1-2" title="2">  <span class="kw">id</span> <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span></a>
-<a class="sourceLine" id="cb1-3" title="3">);</a>
-<a class="sourceLine" id="cb1-4" title="4"></a>
-<a class="sourceLine" id="cb1-5" title="5"><span class="kw">create</span> <span class="kw">table</span> customer(</a>
-<a class="sourceLine" id="cb1-6" title="6">  <span class="kw">id</span> <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span>,</a>
-<a class="sourceLine" id="cb1-7" title="7">  account_id <span class="dt">serial</span> <span class="kw">references</span> account(<span class="kw">id</span>)</a>
-<a class="sourceLine" id="cb1-8" title="8">);</a>
-<a class="sourceLine" id="cb1-9" title="9"></a>
-<a class="sourceLine" id="cb1-10" title="10"><span class="kw">create</span> <span class="kw">table</span> purchase(</a>
-<a class="sourceLine" id="cb1-11" title="11">  <span class="kw">id</span> <span class="dt">serial</span> <span class="kw">primary</span> <span class="kw">key</span>,</a>
-<a class="sourceLine" id="cb1-12" title="12">  account_id <span class="dt">serial</span> <span class="kw">references</span> account(<span class="kw">id</span>),</a>
-<a class="sourceLine" id="cb1-13" title="13">  customer_id <span class="dt">serial</span> <span class="kw">references</span> customer(<span class="kw">id</span>),</a>
-<a class="sourceLine" id="cb1-14" title="14">  amount <span class="dt">numeric</span>(<span class="dv">10</span>, <span class="dv">2</span>),</a>
-<a class="sourceLine" id="cb1-15" title="15">  <span class="dt">time</span> <span class="dt">timestamptz</span>,</a>
-<a class="sourceLine" id="cb1-16" title="16">  favorite <span class="dt">bool</span> <span class="kw">not</span> <span class="kw">null</span></a>
-<a class="sourceLine" id="cb1-17" title="17">);</a></code></pre></div>
-<p>For this exercise, I’ve created 3 accounts, 10,000 customers, and 10,000,000 purchases.</p>
-<p>It’s <em>obvious</em> that we’d want to add indexes to our foreign key fields, so let’s go ahead and do that.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">create</span> <span class="kw">index</span> ix_customer_account <span class="kw">on</span> customer(account_id);</a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_account <span class="kw">on</span> purchase(account_id);</a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_customer <span class="kw">on</span> purchase(customer_id);</a></code></pre></div>
-<p><em>This is actually <strong>not</strong> a good idea. While we very well may end up needing indexes like these, we should always look at the query plan and confirm that the index is justified before adding it.</em></p>
-<h2 id="optimizing-count">Optimizing <code>count(*)</code></h2>
-<p>Now let’s say that we need to provide the count of favorite purchases for an account. Let’s check the query plan to see how this does.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">explain</span> <span class="kw">analyze</span></a>
-<a class="sourceLine" id="cb3-2" title="2">  <span class="kw">select</span> <span class="fu">count</span>(<span class="op">*</span>)</a>
-<a class="sourceLine" id="cb3-3" title="3">  <span class="kw">from</span> purchase</a>
-<a class="sourceLine" id="cb3-4" title="4">  <span class="kw">where</span> account_id <span class="op">=</span> <span class="dv">1</span> <span class="kw">and</span> favorite;</a></code></pre></div>
-<pre class="text"><code>Aggregate  (cost=188196.41..188196.42 rows=1 width=0) (actual time=1109.149..1109.150 rows=1 loops=1)
-  -&gt;  Bitmap Heap Scan on purchase  (cost=62066.98..187350.98 rows=338173 width=0) (actual time=235.196..1093.048 rows=332813 loops=1)
+      <main class="dev-content">
+        <article>
+  <header class="post-header">
+    <h1>PostgreSQL Indexes</h1>
+    <time datetime="2016-01-26">January 26, 2016</time>
+  </header>
+  <div class="post-body">
+    <p>Many times, while we are creating our schemas, we preemptively add indexes to ensure
+our queries will be blazingly fast before we even start writing them.  But come to find
+out, not only does this rarely work, but you end up with false expectations regarding
+performance.</p>
+<p>Let's start with the following schema -</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">create</span> <span class="token keyword">table</span> account<span class="token punctuation">(</span>
+  id <span class="token keyword">serial</span> <span class="token keyword">primary</span> <span class="token keyword">key</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">create</span> <span class="token keyword">table</span> customer<span class="token punctuation">(</span>
+  id <span class="token keyword">serial</span> <span class="token keyword">primary</span> <span class="token keyword">key</span><span class="token punctuation">,</span>
+  account_id <span class="token keyword">serial</span> <span class="token keyword">references</span> account<span class="token punctuation">(</span>id<span class="token punctuation">)</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">create</span> <span class="token keyword">table</span> purchase<span class="token punctuation">(</span>
+  id <span class="token keyword">serial</span> <span class="token keyword">primary</span> <span class="token keyword">key</span><span class="token punctuation">,</span>
+  account_id <span class="token keyword">serial</span> <span class="token keyword">references</span> account<span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  customer_id <span class="token keyword">serial</span> <span class="token keyword">references</span> customer<span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  amount <span class="token keyword">numeric</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token keyword">time</span> timestamptz<span class="token punctuation">,</span>
+  favorite <span class="token keyword">bool</span> <span class="token operator">not</span> <span class="token boolean">null</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<p>For this exercise, I've created 3 accounts, 10,000 customers, and 10,000,000 purchases.</p>
+<p>It's <em>obvious</em> that we'd want to add indexes to our foreign key fields, so let's go ahead and do that.</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">create</span> <span class="token keyword">index</span> ix_customer_account <span class="token keyword">on</span> customer<span class="token punctuation">(</span>account_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">create</span> <span class="token keyword">index</span> ix_purchase_account <span class="token keyword">on</span> purchase<span class="token punctuation">(</span>account_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">create</span> <span class="token keyword">index</span> ix_purchase_customer <span class="token keyword">on</span> purchase<span class="token punctuation">(</span>customer_id<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<p><em>This is actually <strong>not</strong> a good idea.  While we very well may end up needing indexes like these,
+we should always look at the query plan and confirm that the index is justified before adding it.</em></p>
+<h2>Optimizing <code>count(*)</code></h2>
+<p>Now let's say that we need to provide the count of favorite purchases for an account.
+Let's check the query plan to see how this does.</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">explain</span> <span class="token keyword">analyze</span>
+  <span class="token keyword">select</span> <span class="token function">count</span><span class="token punctuation">(</span><span class="token operator">*</span><span class="token punctuation">)</span>
+  <span class="token keyword">from</span> purchase
+  <span class="token keyword">where</span> account_id <span class="token operator">=</span> <span class="token number">1</span> <span class="token operator">and</span> favorite<span class="token punctuation">;</span></code></pre>
+<pre class="language-text"><code class="language-text">Aggregate  (cost=188196.41..188196.42 rows=1 width=0) (actual time=1109.149..1109.150 rows=1 loops=1)
+  ->  Bitmap Heap Scan on purchase  (cost=62066.98..187350.98 rows=338173 width=0) (actual time=235.196..1093.048 rows=332813 loops=1)
         Recheck Cond: (account_id = 1)
         Rows Removed by Index Recheck: 4219293
         Filter: favorite
         Rows Removed by Filter: 3001198
         Heap Blocks: exact=30596 lossy=52738
-        -&gt;  Bitmap Index Scan on ix_purchase_account  (cost=0.00..61982.43 rows=3356000 width=0) (actual time=229.033..229.033 rows=3334011 loops=1)
+        ->  Bitmap Index Scan on ix_purchase_account  (cost=0.00..61982.43 rows=3356000 width=0) (actual time=229.033..229.033 rows=3334011 loops=1)
               Index Cond: (account_id = 1)
 Planning time: 0.051 ms
 Execution time: 1109.173 ms</code></pre>
-<p><em>Note: If you have trouble reading these, you can paste them into <a href="http://explain.depesz.com/">explain.depesz.com</a> which will give you a nicer format to work with.</em></p>
-<p>These results aren’t exactly great. The <strong>Bitmap Heap Scan</strong> here shows us that we’re having to scan through more rows than we’d ought to. In fact, if we create our indexes appropriately, we can actually get the results we want directly from the index!</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_account_favorite <span class="kw">on</span> purchase(account_id) <span class="kw">where</span> favorite;</a></code></pre></div>
-<p>Here we are using <code>where</code> to specify a <a href="http://www.postgresql.org/docs/current/static/indexes-partial.html">partial index</a>. This can be useful so that your indexes remain smaller, reducing the size impact to the database. This also gives Postgres additional information so it knows when it can use the index.</p>
-<p>Ok, now let’s plan our query again -</p>
-<pre class="text"><code>Aggregate  (cost=94743.86..94743.87 rows=1 width=0) (actual time=886.781..886.781 rows=1 loops=1)
-  -&gt;  Bitmap Heap Scan on purchase  (cost=6337.27..93898.43 rows=338173 width=0) (actual time=44.876..868.883 rows=332813 loops=1)
+<p><em>Note: If you have trouble reading these, you can paste them into
+<a href="http://explain.depesz.com/">explain.depesz.com</a> which will give you a nicer format to work with.</em></p>
+<p>These results aren't exactly great.  The <strong>Bitmap Heap Scan</strong> here shows us that we're having
+to scan through more rows than we'd ought to.  In fact, if we create our indexes appropriately,
+we can actually get the results we want directly from the index!</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">create</span> <span class="token keyword">index</span> ix_purchase_account_favorite <span class="token keyword">on</span> purchase<span class="token punctuation">(</span>account_id<span class="token punctuation">)</span> <span class="token keyword">where</span> favorite<span class="token punctuation">;</span></code></pre>
+<p>Here we are using <code>where</code> to specify a <a href="http://www.postgresql.org/docs/current/static/indexes-partial.html">partial index</a>.
+This can be useful so that your indexes remain smaller, reducing the size impact to the database.
+This also gives Postgres additional information so it knows when it can use the index.</p>
+<p>Ok, now let's plan our query again -</p>
+<pre class="language-text"><code class="language-text">Aggregate  (cost=94743.86..94743.87 rows=1 width=0) (actual time=886.781..886.781 rows=1 loops=1)
+  ->  Bitmap Heap Scan on purchase  (cost=6337.27..93898.43 rows=338173 width=0) (actual time=44.876..868.883 rows=332813 loops=1)
         Recheck Cond: ((account_id = 1) AND favorite)
         Rows Removed by Index Recheck: 6114519
         Heap Blocks: exact=29172 lossy=52743
-        -&gt;  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..6252.72 rows=338173 width=0) (actual time=39.835..39.835 rows=332813 loops=1)
+        ->  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..6252.72 rows=338173 width=0) (actual time=39.835..39.835 rows=332813 loops=1)
               Index Cond: (account_id = 1)
 Planning time: 0.060 ms
 Execution time: 886.807 ms</code></pre>
-<p>Wait, what? Performance is a little better, but it’s still doing a bitmap scan. What we really want is an <strong>Index Only Scan</strong>. Come to find out, <a href="http://www.postgresql.org/message-id/79C7D74D-59B0-4D97-A5E5-55553EF299AA@justatheory.com">Postgres can’t always figure this out when using partial indexes</a>, so we can give it more information by including the <code>favorite</code> column -</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">drop</span> <span class="kw">index</span> ix_purchase_account_favorite;</a>
-<a class="sourceLine" id="cb7-2" title="2"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_account_favorite <span class="kw">on</span> purchase(account_id, favorite) <span class="kw">where</span> favorite;</a></code></pre></div>
-<p>Let’s try our query again -</p>
-<pre class="text"><code>Aggregate  (cost=1838.89..1838.90 rows=1 width=0) (actual time=47.028..47.028 rows=1 loops=1)
-  -&gt;  Index Only Scan using ix_purchase_account_favorite on purchase  (cost=0.42..1014.35 rows=329817 width=0) (actual time=0.023..31.922 rows=332813 loops=1)
+<p>Wait, what?  Performance is a little better, but it's still doing a bitmap scan.  What we really
+want is an <strong>Index Only Scan</strong>.  Come to find out, <a href="http://www.postgresql.org/message-id/79C7D74D-59B0-4D97-A5E5-55553EF299AA@justatheory.com">Postgres can't always figure this out when
+using partial indexes</a>,
+so we can give it more information by including the <code>favorite</code>
+column -</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">drop</span> <span class="token keyword">index</span> ix_purchase_account_favorite<span class="token punctuation">;</span>
+<span class="token keyword">create</span> <span class="token keyword">index</span> ix_purchase_account_favorite <span class="token keyword">on</span> purchase<span class="token punctuation">(</span>account_id<span class="token punctuation">,</span> favorite<span class="token punctuation">)</span> <span class="token keyword">where</span> favorite<span class="token punctuation">;</span></code></pre>
+<p>Let's try our query again -</p>
+<pre class="language-text"><code class="language-text">Aggregate  (cost=1838.89..1838.90 rows=1 width=0) (actual time=47.028..47.028 rows=1 loops=1)
+  ->  Index Only Scan using ix_purchase_account_favorite on purchase  (cost=0.42..1014.35 rows=329817 width=0) (actual time=0.023..31.922 rows=332813 loops=1)
         Index Cond: ((account_id = 1) AND (favorite = true))
         Heap Fetches: 0
 Planning time: 0.063 ms
 Execution time: 47.048 ms</code></pre>
-<p>Good! Now that we are getting an index only scan, we can pretty much stop at this point. This is generally the best you can do when optimizing a <code>count(*)</code> query. Postgres is able to look directly at the index instead of scanning any rows in the table.</p>
-<h2 id="optimizing-order-by-with-limit">Optimizing <code>order by</code> with <code>limit</code></h2>
+<p>Good!  Now that we are getting an index only scan, we can pretty much stop at this point.
+This is generally the best you can do when optimizing a <code>count(*)</code> query.  Postgres is able
+to look directly at the index instead of scanning any rows in the table.</p>
+<h2>Optimizing <code>order by</code> with <code>limit</code></h2>
 <p>Now we are tasked with getting the most recent, favorite purchase.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">explain</span> <span class="kw">analyze</span></a>
-<a class="sourceLine" id="cb9-2" title="2">  <span class="kw">select</span> <span class="kw">id</span>, <span class="dt">time</span></a>
-<a class="sourceLine" id="cb9-3" title="3">  <span class="kw">from</span> purchase</a>
-<a class="sourceLine" id="cb9-4" title="4">  <span class="kw">where</span> account_id <span class="op">=</span> <span class="dv">1</span> <span class="kw">and</span> favorite</a>
-<a class="sourceLine" id="cb9-5" title="5">  <span class="kw">order</span> <span class="kw">by</span> <span class="dt">time</span> <span class="kw">desc</span></a>
-<a class="sourceLine" id="cb9-6" title="6">  <span class="kw">limit</span> <span class="dv">1</span></a></code></pre></div>
-<pre class="text"><code>Limit  (cost=65199.64..65199.64 rows=1 width=12) (actual time=845.771..845.771 rows=1 loops=1)
-  -&gt;  Sort  (cost=65199.64..66024.18 rows=329817 width=12) (actual time=845.770..845.770 rows=1 loops=1)
-        Sort Key: &quot;time&quot;
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">explain</span> <span class="token keyword">analyze</span>
+  <span class="token keyword">select</span> id<span class="token punctuation">,</span> <span class="token keyword">time</span>
+  <span class="token keyword">from</span> purchase
+  <span class="token keyword">where</span> account_id <span class="token operator">=</span> <span class="token number">1</span> <span class="token operator">and</span> favorite
+  <span class="token keyword">order</span> <span class="token keyword">by</span> <span class="token keyword">time</span> <span class="token keyword">desc</span>
+  <span class="token keyword">limit</span> <span class="token number">1</span></code></pre>
+<pre class="language-text"><code class="language-text">Limit  (cost=65199.64..65199.64 rows=1 width=12) (actual time=845.771..845.771 rows=1 loops=1)
+  ->  Sort  (cost=65199.64..66024.18 rows=329817 width=12) (actual time=845.770..845.770 rows=1 loops=1)
+        Sort Key: "time"
         Sort Method: top-N heapsort  Memory: 25kB
-        -&gt;  Bitmap Heap Scan on purchase  (cost=769.84..63550.56 rows=329817 width=12) (actual time=51.306..815.209 rows=332813 loops=1)
+        ->  Bitmap Heap Scan on purchase  (cost=769.84..63550.56 rows=329817 width=12) (actual time=51.306..815.209 rows=332813 loops=1)
               Recheck Cond: (account_id = 1)
               Rows Removed by Index Recheck: 4216921
               Filter: favorite
               Rows Removed by Filter: 1897598
               Heap Blocks: exact=29172 lossy=52743
-              -&gt;  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..687.38 rows=32696 width=0) (actual time=43.954..43.954 rows=332813 loops=1)
+              ->  Bitmap Index Scan on ix_purchase_account_favorite  (cost=0.00..687.38 rows=32696 width=0) (actual time=43.954..43.954 rows=332813 loops=1)
                     Index Cond: ((account_id = 1) AND (favorite = true))
 Planning time: 0.120 ms
 Execution time: 845.798 ms</code></pre>
-<p>Interesting, it’s using our new index, but it has to resort to a bitmap scan so it can later sort the results. Alternatively, we can provide a similar index with <code>time desc</code> so we can optimize for the sort -</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">create</span> <span class="kw">index</span> ix_purchase_latest_favorite <span class="kw">on</span> purchase(account_id, <span class="dt">time</span> <span class="kw">desc</span>)</a>
-<a class="sourceLine" id="cb11-2" title="2">  <span class="kw">where</span> favorite;</a></code></pre></div>
+<p>Interesting, it's using our new index, but it has to resort to a bitmap scan so it can
+later sort the results.  Alternatively, we can provide a similar index with <code>time desc</code>
+so we can optimize for the sort -</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">create</span> <span class="token keyword">index</span> ix_purchase_latest_favorite <span class="token keyword">on</span> purchase<span class="token punctuation">(</span>account_id<span class="token punctuation">,</span> <span class="token keyword">time</span> <span class="token keyword">desc</span><span class="token punctuation">)</span>
+  <span class="token keyword">where</span> favorite<span class="token punctuation">;</span></code></pre>
 <p>Now Postgres is able to use an <strong>Index Scan</strong> to fetch the result -</p>
-<pre class="text"><code>Limit  (cost=0.42..1.41 rows=1 width=12) (actual time=0.018..0.019 rows=1 loops=1)
-  -&gt;  Index Scan using ix_purchase_latest_favorite on purchase  (cost=0.42..324659.07 rows=328677 width=12) (actual time=0.018..0.018 rows=1 loops=1)
+<pre class="language-text"><code class="language-text">Limit  (cost=0.42..1.41 rows=1 width=12) (actual time=0.018..0.019 rows=1 loops=1)
+  ->  Index Scan using ix_purchase_latest_favorite on purchase  (cost=0.42..324659.07 rows=328677 width=12) (actual time=0.018..0.018 rows=1 loops=1)
         Index Cond: (account_id = 1)
 Planning time: 0.080 ms
 Execution time: 0.029 ms</code></pre>
-<p>Note that <code>limit 1</code> isn’t necessarily required here; however, if you are fetching a lot of rows, it’s likely that Postgres will resort to a bitmap heap scan instead of an index scan.</p>
-<h2 id="gotchas">Gotchas</h2>
-<p>When adding indexes you may not see the plans you expect immediately. Be sure to always execute the query a few times to ensure statistics are updated. You may even need to run <code>vacuum analyze</code> on the table to rebuild statistics (although, don’t do <code>vacuum full analyze</code> unless you know that’s what you need as this usually destroys statistics used for things like index only scans).</p>
-<p>So far, our original indexes aren’t being used at all. Let’s see how big they are -</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">select</span> ix, <span class="fu">pg_size_pretty</span>(<span class="fu">pg_relation_size</span>(ix))</a>
-<a class="sourceLine" id="cb13-2" title="2"><span class="kw">from</span> (</a>
-<a class="sourceLine" id="cb13-3" title="3">  <span class="kw">values</span> (<span class="st">'ix_customer_account'</span>),(<span class="st">'ix_purchase_account'</span>),(<span class="st">'ix_purchase_customer'</span>)</a>
-<a class="sourceLine" id="cb13-4" title="4">) <span class="kw">as</span> _(ix);</a></code></pre></div>
-<pre class="text"><code>          ix          | pg_size_pretty 
+<p>Note that <code>limit 1</code> isn't necessarily required here; however, if you are fetching a lot of rows,
+it's likely that Postgres will resort to a bitmap heap scan instead of an index scan.</p>
+<h2>Gotchas</h2>
+<p>When adding indexes you may not see the plans you expect immediately.  Be sure to always
+execute the query a few times to ensure statistics are updated.  You may even need to
+run <code>vacuum analyze</code> on the table to rebuild statistics (although, don't do <code>vacuum full analyze</code>
+unless you know that's what you need as this usually destroys statistics used for things like
+index only scans).</p>
+<p>So far, our original indexes aren't being used at all.  Let's see how big they are -</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">select</span> ix<span class="token punctuation">,</span> pg_size_pretty<span class="token punctuation">(</span>pg_relation_size<span class="token punctuation">(</span>ix<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">from</span> <span class="token punctuation">(</span>
+  <span class="token keyword">values</span> <span class="token punctuation">(</span><span class="token string">'ix_customer_account'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token punctuation">(</span><span class="token string">'ix_purchase_account'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token punctuation">(</span><span class="token string">'ix_purchase_customer'</span><span class="token punctuation">)</span>
+<span class="token punctuation">)</span> <span class="token keyword">as</span> _<span class="token punctuation">(</span>ix<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<pre class="language-text"><code class="language-text">          ix          | pg_size_pretty 
 ----------------------+----------------
  ix_customer_account  | 2208 kB
  ix_purchase_account  | 214 MB
  ix_purchase_customer | 214 MB</code></pre>
-<p>That’s nearly half a GB for our test data. This is pretty wasteful, so considering that production systems contain a <em>lot</em> more data than our toy, you can really save some space by not creating wasteful indexes.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sqlpostgresql"><code class="sourceCode sqlpostgresql"><a class="sourceLine" id="cb15-1" title="1"><span class="kw">drop</span> <span class="kw">index</span> ix_customer_account;</a>
-<a class="sourceLine" id="cb15-2" title="2"><span class="kw">drop</span> <span class="kw">index</span> ix_purchase_account;</a>
-<a class="sourceLine" id="cb15-3" title="3"><span class="kw">drop</span> <span class="kw">index</span> ix_purchase_customer;</a></code></pre></div>
-<p>In the future, let’s not add indexes until we prove via our query plans that they are actually beneficial.</p>
+<p>That's nearly half a GB for our test data.  This is pretty wasteful, so considering that production
+systems contain a <em>lot</em> more data than our toy, you can really save some space by not creating
+wasteful indexes.</p>
+<pre class="language-sql"><code class="language-sql"><span class="token keyword">drop</span> <span class="token keyword">index</span> ix_customer_account<span class="token punctuation">;</span>
+<span class="token keyword">drop</span> <span class="token keyword">index</span> ix_purchase_account<span class="token punctuation">;</span>
+<span class="token keyword">drop</span> <span class="token keyword">index</span> ix_purchase_customer<span class="token punctuation">;</span></code></pre>
+<p>In the future, let's not add indexes until we prove via our query plans that they are actually
+beneficial.</p>
+
+  </div>
+</article>
+
+      </main>
+
+      <footer class="dev-footer">
+        <ul class="social-links">
+  
+  <li>
+    <a class="social-links__badge" href="https://github.com/carymrobbins" title="GitHub" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      <span class="sr-only">GitHub</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://www.linkedin.com/in/carymrobbins" title="LinkedIn" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LinkedIn</title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <span class="sr-only">LinkedIn</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://twitter.com/carymrobbins" title="X / Twitter" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+      <span class="sr-only">X / Twitter</span>
+    </a>
+  </li>
+  
+</ul>
+
+        <div class="dev-footer__copy">&copy; 2026 Cary Robbins. All rights reserved.</div>
+      </footer>
     </div>
   </div>
-  <div id="disqus_thread"></div>
-<script>
-var disqus_config = function () {
-this.page.url = 'http://caryrobbins.com' + '/dev/postgres-indexes/index.html';
-this.page.identifier = '/dev/postgres-indexes/index.html';
-};
-(function() { // DON'T EDIT BELOW THIS LINE
-var d = document, s = d.createElement('script');
-s.src = 'https://caryrobbins-com.disqus.com/embed.js';
-s.setAttribute('data-timestamp', +new Date());
-(d.head || d.body).appendChild(s);
-})();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
-</div>
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="../../">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+  <button type="button" id="win95-toggle" class="win95-toggle-btn" aria-label="Toggle 95 mode">
+    <span class="win95-toggle-btn__enter">95</span>
+    <img class="win95-toggle-btn__exit" src="/assets/icons/win95-space.svg" width="24" height="24" alt="" />
+  </button>
+  <script src="/assets/js/win95.js" defer></script>
+</body>
 </html>

@@ -1,148 +1,162 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Converting Java collections to Scala collections from Java</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Converting Java collections to Scala collections from Java — Cary Robbins</title>
+  <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
+  <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
 
-    <!-- components -->
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="../../components/bootstrap-social/bootstrap-social.css" />
+  <!-- Loaded first so our own rules below can override its `body`
+       defaults (font-size, font-family) without needing !important —
+       see docs/dev/win95-mode.md. -->
+  <link rel="stylesheet" href="/assets/css/98.win95.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/prism.css">
+  <link rel="stylesheet" href="/assets/css/dev.css">
+</head>
+<body class="dev">
+  <script>
+    try {
+      if (localStorage.getItem("win95") === "1") document.body.classList.add("win95");
+    } catch (e) {}
+  </script>
+  <!-- © 2026 Cary Robbins. All rights reserved. -->
 
-    <!-- google fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Noto+Serif:400,700" rel="stylesheet" type="text/css">
-
-    <!-- assets -->
-    <link rel="stylesheet" type="text/css" href="../../css/default.css" />
-    <link rel="stylesheet" type="text/css" href="../../css/pygments.css" />
-
-  </head>
-  <body>
-    <nav id="header" class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="row">
-          <div id="logo" class="col-md-6">
-            <a href="../../">cary robbins</a>
-          </div>
-          <div id="social" class="col-md-6">
-            <a title="github" href="https://github.com/carymrobbins" class="btn btn-social-icon btn-github">
-              <span class="fa fa-github"></span>
-            </a>
-            <a title="linkedin" href="https://www.linkedin.com/in/carymrobbins" class="btn btn-social-icon btn-linkedin">
-              <span class="fa fa-linkedin"></span>
-            </a>
-            <a title="twitter" href="https://twitter.com/carymrobbins" class="btn btn-social-icon btn-twitter">
-              <span class="fa fa-twitter"></span>
-            </a>
-          </div>
-        </div>
+  <div class="window win95-frame">
+    <div class="title-bar">
+      <div class="title-bar-text">Converting Java collections to Scala collections from Java — Cary Robbins</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close" id="win95-close"></button>
       </div>
-    </nav>
-
-    <div class="content">
-      <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h1>Converting Java collections to Scala collections from Java</h1>
     </div>
-    <div class="col-md-12">
-      <small>July  7, 2016</small>
+    <div class="window-body">
+      <header class="dev-header">
+        <a class="dev-header__home" href="/dev/" title="Dev Home">
+          <svg class="dev-header__home-icon dev-header__home-icon--normal" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+          </svg>
+          <img class="dev-header__home-icon dev-header__home-icon--win95" src="/assets/icons/win95-computer.svg" width="24" height="24" alt="" />
+          <span class="sr-only">Dev Home</span>
+        </a>
+        <a class="dev-header__brand" href="/">Cary Robbins</a>
+        <a class="dev-header__music" href="/music" title="Music" aria-label="Music">
+          <img src="/assets/favicon/apple-touch-icon.png" alt="" width="32" height="32">
+        </a>
+      </header>
+
+      <main class="dev-content">
+        <article>
+  <header class="post-header">
+    <h1>Converting Java collections to Scala collections from Java</h1>
+    <time datetime="2016-07-07">July 7, 2016</time>
+  </header>
+  <div class="post-body">
+    <p>Converting between Java and Scala collections from Scala code is remarkably easy -</p>
+<pre class="language-scala"><code class="language-scala">scala<span class="token operator">></span> <span class="token keyword">import</span> <span class="token namespace">scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span></span>JavaConverters<span class="token punctuation">.</span>_
+
+scala<span class="token operator">></span> <span class="token keyword">val</span> jList <span class="token operator">=</span> <span class="token keyword">new</span> java<span class="token punctuation">.</span>util<span class="token punctuation">.</span>ArrayList<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span>
+
+scala<span class="token operator">></span> jList<span class="token punctuation">.</span>asScala
+scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span>mutable<span class="token punctuation">.</span>Buffer<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> Buffer<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+scala<span class="token operator">></span> jList<span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toSeq
+Seq<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> Buffer<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+scala<span class="token operator">></span> <span class="token keyword">val</span> sList <span class="token operator">=</span> List<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+List<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> List<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+scala<span class="token operator">></span> sList<span class="token punctuation">.</span>asJava
+java<span class="token punctuation">.</span>util<span class="token punctuation">.</span>List<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+
+scala<span class="token operator">></span> <span class="token keyword">val</span> jMap <span class="token operator">=</span> <span class="token keyword">new</span> java<span class="token punctuation">.</span>util<span class="token punctuation">.</span>HashMap<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">,</span><span class="token builtin">String</span><span class="token punctuation">]</span>
+
+scala<span class="token operator">></span> jMap<span class="token punctuation">.</span>asScala
+res6<span class="token operator">:</span> scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span>mutable<span class="token punctuation">.</span>Map<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">,</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> Map<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+scala<span class="token operator">></span> jMap<span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toMap
+res7<span class="token operator">:</span> scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span>immutable<span class="token punctuation">.</span>Map<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">,</span><span class="token builtin">String</span><span class="token punctuation">]</span> <span class="token operator">=</span> Map<span class="token punctuation">(</span><span class="token punctuation">)</span></code></pre>
+<p>But doing the same from Java is a little more difficult. We can see what Scala
+is doing under the hood by using <code>reify</code> then use the same approach from Java -</p>
+<pre class="language-scala"><code class="language-scala">scala<span class="token operator">></span> <span class="token keyword">import</span> <span class="token namespace">scala<span class="token punctuation">.</span>reflect<span class="token punctuation">.</span>runtime<span class="token punctuation">.</span></span><span class="token punctuation">{</span>universe <span class="token keyword">=></span> u<span class="token punctuation">}</span>
+
+scala<span class="token operator">></span> println<span class="token punctuation">(</span>u<span class="token punctuation">.</span>reify <span class="token punctuation">{</span> jList<span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toSeq <span class="token punctuation">}</span><span class="token punctuation">)</span>
+Expr<span class="token punctuation">[</span>Seq<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">]</span><span class="token punctuation">]</span><span class="token punctuation">(</span>
+  JavaConverters<span class="token punctuation">.</span>asScalaBufferConverter<span class="token punctuation">(</span>$read<span class="token punctuation">.</span>jList<span class="token punctuation">)</span><span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toSeq
+<span class="token punctuation">)</span>
+
+scala<span class="token operator">></span> println<span class="token punctuation">(</span>u<span class="token punctuation">.</span>reify <span class="token punctuation">{</span> jMap<span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toMap <span class="token punctuation">}</span><span class="token punctuation">)</span>
+Expr<span class="token punctuation">[</span>scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span>immutable<span class="token punctuation">.</span>Map<span class="token punctuation">[</span><span class="token builtin">String</span><span class="token punctuation">,</span><span class="token builtin">String</span><span class="token punctuation">]</span><span class="token punctuation">]</span><span class="token punctuation">(</span>
+  JavaConverters<span class="token punctuation">.</span>mapAsScalaMapConverter<span class="token punctuation">(</span>
+    $read<span class="token punctuation">.</span>$iw<span class="token punctuation">.</span>$iw<span class="token punctuation">.</span>$iw<span class="token punctuation">.</span>$iw<span class="token punctuation">.</span>jMap
+  <span class="token punctuation">)</span><span class="token punctuation">.</span>asScala<span class="token punctuation">.</span>toMap<span class="token punctuation">(</span>Predef<span class="token punctuation">.</span>$conforms<span class="token punctuation">)</span>
+<span class="token punctuation">)</span></code></pre>
+<p>In order to pull this off in Java, we can just follow the calls presented in the
+desugared ASTs from above -</p>
+<pre class="language-java"><code class="language-java"><span class="token keyword">import</span> <span class="token import"><span class="token namespace">java<span class="token punctuation">.</span>util<span class="token punctuation">.</span></span><span class="token operator">*</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">scala<span class="token punctuation">.</span></span><span class="token class-name">Predef</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span></span><span class="token class-name">Seq</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">scala<span class="token punctuation">.</span>collection<span class="token punctuation">.</span></span><span class="token class-name">JavaConverters</span></span><span class="token punctuation">;</span>
+
+<span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">Main</span> <span class="token punctuation">{</span>
+  <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">void</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token class-name">String</span> args<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Java collections.</span>
+    <span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">String</span><span class="token punctuation">></span></span> jList <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ArrayList</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token punctuation">></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token class-name">Map</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">String</span><span class="token punctuation">,</span> <span class="token class-name">String</span><span class="token punctuation">></span></span> jMap <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">HashMap</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token punctuation">></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Convert to Scala collections.</span>
+    <span class="token class-name">Seq</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">String</span><span class="token punctuation">></span></span> sList <span class="token operator">=</span> <span class="token class-name">JavaConverters</span><span class="token punctuation">.</span><span class="token function">asScalaBufferConverter</span><span class="token punctuation">(</span>xs<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">asScala</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toSeq</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token class-name">Map</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">String</span><span class="token punctuation">,</span> <span class="token class-name">String</span><span class="token punctuation">></span></span> sMap <span class="token operator">=</span>
+      <span class="token class-name">JavaConverters</span><span class="token punctuation">.</span><span class="token function">mapAsScalaMapConverter</span><span class="token punctuation">(</span>jMap<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">asScala</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toMap</span><span class="token punctuation">(</span><span class="token class-name">Predef</span><span class="token punctuation">.</span>$<span class="token function">conforms</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+
+  </div>
+</article>
+
+      </main>
+
+      <footer class="dev-footer">
+        <ul class="social-links">
+  
+  <li>
+    <a class="social-links__badge" href="https://github.com/carymrobbins" title="GitHub" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      <span class="sr-only">GitHub</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://www.linkedin.com/in/carymrobbins" title="LinkedIn" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LinkedIn</title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <span class="sr-only">LinkedIn</span>
+    </a>
+  </li>
+  
+  <li>
+    <a class="social-links__badge" href="https://twitter.com/carymrobbins" title="X / Twitter" rel="me noopener" target="_blank">
+      <svg fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+      <span class="sr-only">X / Twitter</span>
+    </a>
+  </li>
+  
+</ul>
+
+        <div class="dev-footer__copy">&copy; 2026 Cary Robbins. All rights reserved.</div>
+      </footer>
     </div>
   </div>
-  <hr />
-  <div class="row">
-    <div class="col-md-12">
-      <p>Converting between Java and Scala collections from Scala code is remarkably easy -</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb1-1" title="1">scala&gt; <span class="kw">import</span> scala.<span class="fu">collection</span>.<span class="fu">JavaConverters</span>._</a>
-<a class="sourceLine" id="cb1-2" title="2"></a>
-<a class="sourceLine" id="cb1-3" title="3">scala&gt; <span class="kw">val</span> jList = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">ArrayList</span>[String]</a>
-<a class="sourceLine" id="cb1-4" title="4"></a>
-<a class="sourceLine" id="cb1-5" title="5">scala&gt; jList.<span class="fu">asScala</span></a>
-<a class="sourceLine" id="cb1-6" title="6">scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Buffer</span>[String] = Buffer()</a>
-<a class="sourceLine" id="cb1-7" title="7"></a>
-<a class="sourceLine" id="cb1-8" title="8">scala&gt; jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span></a>
-<a class="sourceLine" id="cb1-9" title="9">Seq[String] = Buffer()</a>
-<a class="sourceLine" id="cb1-10" title="10"></a>
-<a class="sourceLine" id="cb1-11" title="11">scala&gt; <span class="kw">val</span> sList = List[String]()</a>
-<a class="sourceLine" id="cb1-12" title="12">List[String] = List()</a>
-<a class="sourceLine" id="cb1-13" title="13"></a>
-<a class="sourceLine" id="cb1-14" title="14">scala&gt; sList.<span class="fu">asJava</span></a>
-<a class="sourceLine" id="cb1-15" title="15">java.<span class="fu">util</span>.<span class="fu">List</span>[String] = []</a>
-<a class="sourceLine" id="cb1-16" title="16"></a>
-<a class="sourceLine" id="cb1-17" title="17">scala&gt; <span class="kw">val</span> jMap = <span class="kw">new</span> java.<span class="fu">util</span>.<span class="fu">HashMap</span>[String,String]</a>
-<a class="sourceLine" id="cb1-18" title="18"></a>
-<a class="sourceLine" id="cb1-19" title="19">scala&gt; jMap.<span class="fu">asScala</span></a>
-<a class="sourceLine" id="cb1-20" title="20">res6: scala.<span class="fu">collection</span>.<span class="fu">mutable</span>.<span class="fu">Map</span>[String,String] = Map()</a>
-<a class="sourceLine" id="cb1-21" title="21"></a>
-<a class="sourceLine" id="cb1-22" title="22">scala&gt; jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span></a>
-<a class="sourceLine" id="cb1-23" title="23">res7: scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String] = Map()</a></code></pre></div>
-<p>But doing the same from Java is a little more difficult. We can see what Scala is doing under the hood by using <code>reify</code> then use the same approach from Java -</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode scala"><code class="sourceCode scala"><a class="sourceLine" id="cb2-1" title="1">scala&gt; <span class="kw">import</span> scala.<span class="fu">reflect</span>.<span class="fu">runtime</span>.{universe =&gt; u}</a>
-<a class="sourceLine" id="cb2-2" title="2"></a>
-<a class="sourceLine" id="cb2-3" title="3">scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jList.<span class="fu">asScala</span>.<span class="fu">toSeq</span> })</a>
-<a class="sourceLine" id="cb2-4" title="4">Expr[Seq[String]](</a>
-<a class="sourceLine" id="cb2-5" title="5">  JavaConverters.<span class="fu">asScalaBufferConverter</span>($read.<span class="fu">jList</span>).<span class="fu">asScala</span>.<span class="fu">toSeq</span></a>
-<a class="sourceLine" id="cb2-6" title="6">)</a>
-<a class="sourceLine" id="cb2-7" title="7"></a>
-<a class="sourceLine" id="cb2-8" title="8">scala&gt; <span class="fu">println</span>(u.<span class="fu">reify</span> { jMap.<span class="fu">asScala</span>.<span class="fu">toMap</span> })</a>
-<a class="sourceLine" id="cb2-9" title="9">Expr[scala.<span class="fu">collection</span>.<span class="fu">immutable</span>.<span class="fu">Map</span>[String,String]](</a>
-<a class="sourceLine" id="cb2-10" title="10">  JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(</a>
-<a class="sourceLine" id="cb2-11" title="11">    $read.$iw.$iw.$iw.$iw.<span class="fu">jMap</span></a>
-<a class="sourceLine" id="cb2-12" title="12">  ).<span class="fu">asScala</span>.<span class="fu">toMap</span>(Predef.$conforms)</a>
-<a class="sourceLine" id="cb2-13" title="13">)</a></code></pre></div>
-<p>In order to pull this off in Java, we can just follow the calls presented in the desugared ASTs from above -</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">import</span><span class="im"> java.util.*;</span></a>
-<a class="sourceLine" id="cb3-2" title="2"><span class="kw">import</span><span class="im"> scala.Predef;</span></a>
-<a class="sourceLine" id="cb3-3" title="3"><span class="kw">import</span><span class="im"> scala.collection.Seq;</span></a>
-<a class="sourceLine" id="cb3-4" title="4"><span class="kw">import</span><span class="im"> scala.collection.JavaConverters;</span></a>
-<a class="sourceLine" id="cb3-5" title="5"></a>
-<a class="sourceLine" id="cb3-6" title="6"><span class="kw">public</span> <span class="kw">class</span> Main {</a>
-<a class="sourceLine" id="cb3-7" title="7">  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span> args[]) {</a>
-<a class="sourceLine" id="cb3-8" title="8">    <span class="co">// Java collections.</span></a>
-<a class="sourceLine" id="cb3-9" title="9">    <span class="bu">List</span>&lt;<span class="bu">String</span>&gt; jList = <span class="kw">new</span> <span class="bu">ArrayList</span>&lt;&gt;();</a>
-<a class="sourceLine" id="cb3-10" title="10">    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; jMap = <span class="kw">new</span> <span class="bu">HashMap</span>&lt;&gt;();</a>
-<a class="sourceLine" id="cb3-11" title="11"></a>
-<a class="sourceLine" id="cb3-12" title="12">    <span class="co">// Convert to Scala collections.</span></a>
-<a class="sourceLine" id="cb3-13" title="13">    Seq&lt;<span class="bu">String</span>&gt; sList = JavaConverters.<span class="fu">asScalaBufferConverter</span>(xs).<span class="fu">asScala</span>().<span class="fu">toSeq</span>();</a>
-<a class="sourceLine" id="cb3-14" title="14">    <span class="bu">Map</span>&lt;<span class="bu">String</span>, <span class="bu">String</span>&gt; sMap =</a>
-<a class="sourceLine" id="cb3-15" title="15">      JavaConverters.<span class="fu">mapAsScalaMapConverter</span>(jMap).<span class="fu">asScala</span>().<span class="fu">toMap</span>(Predef.$<span class="fu">conforms</span>());</a>
-<a class="sourceLine" id="cb3-16" title="16">  }</a>
-<a class="sourceLine" id="cb3-17" title="17">}</a></code></pre></div>
-    </div>
-  </div>
-  <div id="disqus_thread"></div>
-<script>
-var disqus_config = function () {
-this.page.url = 'http://caryrobbins.com' + '/dev/java-scala-collections/index.html';
-this.page.identifier = '/dev/java-scala-collections/index.html';
-};
-(function() { // DON'T EDIT BELOW THIS LINE
-var d = document, s = d.createElement('script');
-s.src = 'https://caryrobbins-com.disqus.com/embed.js';
-s.setAttribute('data-timestamp', +new Date());
-(d.head || d.body).appendChild(s);
-})();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
-</div>
-
-    </div>
-
-    <footer class="footer">
-      <hr />
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <a href="../../">Home</a>
-          </div>
-          <div class="col-md-6 text-right">
-            Copyright © 2020
-          </div>
-        </div>
-      </div>
-    </footer>
-  </body>
+  <button type="button" id="win95-toggle" class="win95-toggle-btn" aria-label="Toggle 95 mode">
+    <span class="win95-toggle-btn__enter">95</span>
+    <img class="win95-toggle-btn__exit" src="/assets/icons/win95-space.svg" width="24" height="24" alt="" />
+  </button>
+  <script src="/assets/js/win95.js" defer></script>
+</body>
 </html>
