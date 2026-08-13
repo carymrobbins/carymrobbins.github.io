@@ -151,10 +151,13 @@ body {
 }
 
 @media (max-width: 760px) {
-  html,
-  body {
-    overflow: auto;
-  }
+  /* html,body stay overflow:hidden (inherited from the base rule above) -
+     the two panels are sized in dvh so they always exactly fill whatever
+     is actually visible, address bar or not, so there's nothing to
+     scroll. Using dvh (not vh) here is what keeps this true: vh resolves
+     to the *large* viewport regardless of the address bar's current
+     state, which used to leave a scrollable sliver whenever it was
+     showing. */
 
   .hero {
     flex-direction: column;
@@ -165,9 +168,9 @@ body {
   .hero__half,
   .hero__half--music,
   .hero__half--dev {
-    flex: 0 0 50vh;
+    flex: 0 0 50dvh;
     width: 100%;
-    height: 50vh;
+    height: 50dvh;
     margin-left: 0;
     clip-path: none;
   }
@@ -178,7 +181,12 @@ body {
   }
 
   .hero__brand {
-    top: 50%;
+    /* Match the seam/panels' unit (dvh, not %) - percentages for an
+       absolutely positioned element resolve against the containing
+       block, which doesn't necessarily track the same viewport basis
+       the seam/panels size against, so keep all three on the same
+       explicit unit rather than relying on them agreeing by accident. */
+    top: 50dvh;
     transform: translate(-50%, -50%);
     font-size: 0.85rem;
     letter-spacing: 0.1em;
@@ -196,7 +204,7 @@ body {
         var(--color-accent-dev)
       )
       1;
-    top: 50vh;
+    top: 50dvh;
     height: 0;
     filter: none;
   }

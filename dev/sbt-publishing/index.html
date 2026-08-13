@@ -4,11 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Publishing to Maven Central with SBT — Cary Robbins</title>
+  
   <meta name="description" content="Cary Robbins — software, notes, and whatever else.">
   <link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
+
+<meta property="og:site_name" content="Cary Robbins">
+<meta property="og:title" content="Publishing to Maven Central with SBT">
+<meta property="og:description" content="Cary Robbins — software, notes, and whatever else.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://caryrobbins.com/dev/sbt-publishing/">
+<meta property="og:image" content="https://caryrobbins.com/assets/favicon/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Publishing to Maven Central with SBT">
+<meta name="twitter:description" content="Cary Robbins — software, notes, and whatever else.">
+<meta name="twitter:image" content="https://caryrobbins.com/assets/favicon/apple-touch-icon.png">
 
   <!-- Loaded first so our own rules below can override its `body`
        defaults (font-size, font-family) without needing !important —
@@ -274,11 +286,11 @@ nothing to commit, working tree clean
 <li>
 <p>Navigate to the <a href="https://oss.sonatype.org">Nexus Repository Manager</a>, login, and check on the
 status of your library by checking your <strong>Staging Repository</strong> (link in the left pane).</p>
-<img src="/images/sbt-publishing-nexus-left-pane.png" />
+<img src="/images/sbt-publishing-nexus-left-pane.png" alt="Nexus Repository Manager left pane, showing the Staging Repositories link under Build Promotion" />
 <p>Scroll through the list of repositories (all named <code>central_bundles</code> for some reason).
 Find the one matching your Group Id. Select it and choose the <strong>Content</strong> tab. Confirm
 that you have entries and files for each of your published libraries.</p>
-<img src="/images/sbt-publishing-staging-repositories.png" />
+<img src="/images/sbt-publishing-staging-repositories.png" alt="Nexus staging repositories list, showing several central_bundles entries with Closed status" />
 </li>
 <li>
 <p>You can now use <code>sbt sonatypeReleaseAll</code> to close and promote all staging repositories.
@@ -287,7 +299,7 @@ You can also use the <strong>Close</strong> button on the top menu in Nexus to d
 <li>
 <p>Confirm that your Staging Repository no longer exists and that it now can be found
 under <strong>Repositories</strong> (left pane) and the <strong>Releases</strong> repository.</p>
-<img src="/images/sbt-publishing-releases-repository.png" />
+<img src="/images/sbt-publishing-releases-repository.png" alt="Nexus Releases repository listing showing the published library's group and artifact folders" />
 </li>
 </ol>
 <p>At this point, it may take a few hours or so for the central repositories to sync your
